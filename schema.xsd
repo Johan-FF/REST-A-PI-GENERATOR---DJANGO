@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+  <!--##############################################-->
+  <!-- Specific Types  -->
+  <!--##############################################-->
+  <!-- Operating Systems -->
+  <xs:simpleType name="so-name">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="WINDOWS"/>
+      <xs:enumeration value="LINUX"/>
+      <xs:enumeration value="MAC"/>
+    </xs:restriction>
+  </xs:simpleType>
+  
+  <!-- Technologies -->
+  <xs:simpleType name="tech-name">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="DJANGO"/>
+      <xs:enumeration value="FASTAPI"/>
+      <xs:enumeration value="NEST.JS"/>
+    </xs:restriction>
+  </xs:simpleType>
+  
+  <!-- Attributes -->
+  <xs:simpleType name="data-type">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="INT"/>
+      <xs:enumeration value="DECIMAL"/>
+      <xs:enumeration value="VARCHAR"/>
+      <xs:enumeration value="BINARY"/>
+    </xs:restriction>
+  </xs:simpleType>
+  
+  <!-- Relations -->
+  <xs:simpleType name="multiplicity">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="1:1"/>
+      <xs:enumeration value="1:n"/>
+      <xs:enumeration value="0:n"/>
+      <xs:enumeration value="0:1"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <!--##############################################-->
+
+
+
+  <!--##############################################-->
+  <!-- Main Document  -->
+  <!--##############################################-->
+  <xs:element name="api-rest-model">
+    <xs:complexType>
+      <xs:sequence>
+
+        <xs:element name="psm-model" minOccurs="1" maxOccurs="1">
+          <xs:complexType>
+            <xs:sequence>
+
+              <xs:element name="so" minOccurs="1" maxOccurs="1">
+                <xs:complexType>
+                  <xs:attribute name="so-name" type="so-name"/>
+                </xs:complexType>
+              </xs:element>
+      
+              <xs:element name="technology" minOccurs="1" maxOccurs="1">
+                <xs:complexType>
+                  <xs:attribute name="tech-name" type="tech-name"/>
+                  <xs:attribute name="version" type="xs:string"/>
+                  <xs:attribute name="port" type="xs:string"/>
+                </xs:complexType>
+              </xs:element>
+      
+              <xs:element name="project" minOccurs="1" maxOccurs="1">
+                <xs:complexType>
+                  <xs:attribute name="name" type="xs:string"/>
+                </xs:complexType>
+              </xs:element>
+
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+
+        <xs:element name="csm-model" minOccurs="1" maxOccurs="1">
+          <xs:complexType>
+            <xs:sequence>
+
+            <xs:element name="login" minOccurs="1" maxOccurs="1">
+              <xs:complexType>
+                <xs:sequence>
+                  <xs:element name="table" minOccurs="0" maxOccurs="1">
+                    <xs:complexType>
+                      <xs:attribute name="name" type="xs:string"></xs:attribute>
+                    </xs:complexType>
+                  </xs:element>
+
+                  <xs:element name="unique-field" minOccurs="0" maxOccurs="1">
+                    <xs:complexType>
+                      <xs:attribute name="attribute" type="xs:string"></xs:attribute>
+                    </xs:complexType>
+                  </xs:element>
+
+                  <xs:element name="encrypt-field" minOccurs="0" maxOccurs="1">
+                    <xs:complexType>
+                      <xs:attribute name="attribute" type="xs:string"></xs:attribute>
+                    </xs:complexType>
+                  </xs:element>
+                </xs:sequence>
+
+                <xs:attribute name="has" type="xs:boolean"/>
+              </xs:complexType>
+            </xs:element>
+
+              <xs:element name="package" minOccurs="0" maxOccurs="unbounded">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="table" minOccurs="1" maxOccurs="unbounded">
+                      <xs:complexType>
+                        <xs:attribute name="name" type="xs:string"></xs:attribute>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                  <xs:attribute name="name" type="xs:string"/>
+                </xs:complexType>
+              </xs:element>
+
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+
+        <xs:element name="relational-model" minOccurs="1" maxOccurs="1">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element ref="table" minOccurs="1" maxOccurs="unbounded"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <!--##############################################-->
+
+
+
+  <!--##############################################-->
+  <!-- Table Specification  -->
+  <!--##############################################-->
+  <xs:element name="table">
+    <xs:complexType>
+      <xs:sequence>
+
+        <xs:element name="attributes" minOccurs="1" maxOccurs="1">
+          <xs:complexType>
+            <xs:sequence>
+
+              <xs:element name="attribute" minOccurs="1" maxOccurs="unbounded">
+                <xs:complexType>
+                  <xs:attribute use="required" name="name" type="xs:string"/>
+                  <xs:attribute use="required" name="data-type" type="data-type"/>
+                  <xs:attribute name="PK" type="xs:boolean"/>
+                </xs:complexType>
+              </xs:element>
+            
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+
+        
+        <xs:element name="relations" minOccurs="0" maxOccurs="1">
+          <xs:complexType>
+            <xs:sequence>
+
+              <xs:element name="relation" minOccurs="1" maxOccurs="unbounded">
+                <xs:complexType>
+                  <xs:attribute use="required" name="multiplicity" type="multiplicity"/>
+                  <xs:attribute use="required" name="table" type="xs:string"/>
+                </xs:complexType>
+              </xs:element>
+            
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+
+      </xs:sequence>
+
+      <xs:attribute use="required" name="name" type="xs:string"/>
+    </xs:complexType>
+  </xs:element>
+  <!--##############################################-->
+
+</xs:schema>
