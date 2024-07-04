@@ -1,0 +1,7 @@
+__pycache__/
+venv/
+fastapi/prueba.sh
+
+front/node_modules
+
+db.sqlite3
