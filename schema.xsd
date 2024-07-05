@@ -25,6 +25,7 @@
   <!-- Attributes -->
   <xs:simpleType name="data-type">
     <xs:restriction base="xs:string">
+      <xs:enumeration value="BOOL"/> 
       <xs:enumeration value="INT"/>
       <xs:enumeration value="DECIMAL"/>
       <xs:enumeration value="VARCHAR"/>
@@ -174,6 +175,7 @@
                 <xs:complexType>
                   <xs:attribute use="required" name="multiplicity" type="multiplicity"/>
                   <xs:attribute use="required" name="table" type="xs:string"/>
+                  <xs:attribute use="required" name="attribute" type="xs:string"/>
                 </xs:complexType>
               </xs:element>
             
