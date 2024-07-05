@@ -1,6 +1,6 @@
 from django.http import FileResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
-import json
+import xml.etree.ElementTree as ET
 import os
 
 from script_builder.director import Director
@@ -10,11 +10,12 @@ from script_builder.fast_api_builder import FastAPIBuilder
 def download_file(request):
     director = Director()
 
-    model = json.loads(request.body).get("api-rest-model")
+    tree = ET.ElementTree(ET.fromstring(request.body))
+    root = tree.getroot()
 
-    director.builder = FastAPIBuilder(model.get("psm-model"))
+    director.builder = FastAPIBuilder(root.find('psm-model'))
 
-    director.build_fast_api_api_rest(model.get("csm-model"), model.get("relational-model"))
+    director.build_fast_api_api_rest(root.find('csm-model'), root.find('relational-model'))
 
     # Obtener el directorio actual del archivo Python
     current_dir = os.path.dirname(os.path.abspath(__file__))

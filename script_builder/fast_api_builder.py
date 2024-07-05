@@ -14,7 +14,9 @@ class FastAPIBuilder(Builder):
         A fresh builder instance should contain a blank script object, which is
         used in further assembly.
         """
-        self.reset(psm_model.get("project").get("name"))
+        # self.reset(psm_model.get("project").get("name"))
+        self.reset(psm_model.find("project").get("name"))
+
 
     def reset(self, project_name: str) -> None:
         FastAPIBuilder.PROJECT_NAME = project_name

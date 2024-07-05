@@ -13,88 +13,55 @@ function App() {
       const response = await fetch(url, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/xml",
         },
-        body: JSON.stringify({
-          "api-rest-model": {
-            "psm-model": {
-              so: {
-                "so-name": "LINUX",
-              },
-              technology: {
-                "tech-name": "NEST.JS",
-                version: "0.0.0",
-              },
-              project: {
-                name: "TIENDA",
-              },
-            },
-            "csm-model": {
-              package: [
-                {
-                  name: "USER",
-                  table: {
-                    name: "CLIENTE",
-                  },
-                },
-                {
-                  name: "BUY",
-                  table: {
-                    name: "FACTURA",
-                  },
-                },
-              ],
-            },
-            "relational-model": {
-              table: [
-                {
-                  name: "CLIENTE",
-                  attributes: {
-                    attribute: [
-                      {
-                        "data-type": "INT",
-                        name: "ID_CLIENTE",
-                        PK: "true",
-                      },
-                      {
-                        "data-type": "VARCHAR",
-                        name: "name",
-                      },
-                    ],
-                  },
-                  relations: {
-                    relation: {
-                      multiplicity: "1:n",
-                      table: "FACTURA",
-                    },
-                  },
-                },
-                {
-                  name: "FACTURA",
-                  attributes: {
-                    attribute: [
-                      {
-                        "data-type": "INT",
-                        name: "ID_FACTURA",
-                        PK: "true",
-                      },
-                      {
-                        "data-type": "VARCHAR",
-                        name: "FECHA",
-                      },
-                    ],
-                  },
-                  relations: {
-                    relation: {
-                      multiplicity: "1:n",
-                      table: "CLIENTE",
-                    },
-                  },
-                },
-              ],
-            },
-          },
-        }),
+        body: `<?xml version="1.0" encoding="UTF-8"?>
+<api-rest-model xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:noNamespaceSchemaLocation="schema.xsd">
+  <psm-model>
+    <so so-name="LINUX"/>
+    <technology tech-name="FASTAPI" version="0.0.0" port="4321"/>
+    <project name="TIENDA"/>
+  </psm-model>
+
+  <csm-model>
+    <login has="true">
+      <table name="CLIENTE"/>
+      <unique-field attribute="ID_CLIENTE"/>
+      <encrypt-field attribute="name"/>
+    </login>
+    <package name="USER">
+      <table name="CLIENTE"/>
+    </package>
+    <package name="BUY">
+      <table name="FACTURA"/>
+    </package>
+  </csm-model>
+
+  <relational-model>
+    <table name="CLIENTE">
+      <attributes>
+        <attribute data-type="INT" name="ID_CLIENTE" PK="true"/>
+        <attribute data-type="VARCHAR" name="name" />
+      </attributes>
+
+      <relations>
+        <relation multiplicity="1:n" table="FACTURA"/>
+      </relations>
+    </table>
+
+    <table name="FACTURA">
+      <attributes>
+        <attribute data-type="INT" name="ID_FACTURA"  PK="true"/>
+        <attribute data-type="VARCHAR" name="FECHA" />
+      </attributes>
+
+      <relations>
+        <relation multiplicity="1:n" table="CLIENTE"/>
+      </relations>
+    </table>
+  </relational-model>
+</api-rest-model>`,
       });
 
       if (!response.ok) {
