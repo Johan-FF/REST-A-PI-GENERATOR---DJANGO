@@ -46,7 +46,7 @@ xsi:noNamespaceSchemaLocation="schema.xsd">
       </attributes>
 
       <relations>
-        <relation multiplicity="1:n" table="FACTURA"/>
+        <relation multiplicity="1:n" table="FACTURA" attribute="ID_FACTURA"/>
       </relations>
     </table>
 
@@ -57,7 +57,7 @@ xsi:noNamespaceSchemaLocation="schema.xsd">
       </attributes>
 
       <relations>
-        <relation multiplicity="1:n" table="CLIENTE"/>
+        <relation multiplicity="1:n" table="CLIENTE" attribute="ID_CLIENTE"/>
       </relations>
     </table>
   </relational-model>

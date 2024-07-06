@@ -36,9 +36,11 @@ class Director:
         pass
 
     def build_fast_api_api_rest(self, csm_model, relational_model) -> None:
+        entities: list[str] = []
+
         for table in relational_model.findall("table"):
             
-            attributes = []
+            attributes: list[dict] = []
             for attribute in table.find("attributes").findall("attribute"):
                 attributes.append({
                     "name": attribute.get("name"),
@@ -46,12 +48,16 @@ class Director:
                     "data-type":  get_python_type(attribute.get("data-type")),
                 })
 
-            relations = {}
+            relations: dict[str, str] = {}
             for relation in table.find("relations").findall("relation"):
-                relations[str(relation.get("attribute"))] = relation.get("table")
-            
-            self._builder.produce_crud(table.get("name"), attributes, relations)
+                relations[relation.get("attribute")] = relation.get("table")
+
+            table_name: str = table.get("name")
+            entities.append(table_name)
+            self._builder.produce_crud(table_name, attributes, relations)
         
+        self._builder.produce_app_file(entities)
+
         self.create_script_file(self._builder.script)
 
 
