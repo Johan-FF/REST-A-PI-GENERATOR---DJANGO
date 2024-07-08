@@ -21,3 +21,7 @@ class ConcreteScript():
     
     def parts_as_string(self) -> str:
         return '\n'.join(self._parts)
+    
+    def reset_parts(self) -> None:
+        self._parts.clear()
+        

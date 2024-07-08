@@ -15,15 +15,15 @@ def download_file(request):
 
     director.builder = FastAPIBuilder(root.find('psm-model'))
 
+    director.so = root.find('psm-model').find("so").get("so-name")
     director.build_fast_api_api_rest(root.find('csm-model'), root.find('relational-model'))
 
-    # Obtener el directorio actual del archivo Python
     current_dir = os.path.dirname(os.path.abspath(__file__))
 
-    # Construir la ruta al archivo prueba.sh
-    file_path = os.path.join(current_dir, "prueba.sh")
+    file_name = 'prueba.'+ ("bat" if director.so=="WINDOWS" else "sh")
+    file_path = os.path.join(current_dir, file_name)
 
     if os.path.exists(file_path):
-        return FileResponse(open(file_path, 'rb'), as_attachment=True, filename="prueba.sh")
+        return FileResponse(open(file_path, 'rb'), as_attachment=True, filename=file_name)
     else:
         raise Http404("File not found")

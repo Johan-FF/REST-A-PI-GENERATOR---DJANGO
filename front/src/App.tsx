@@ -8,6 +8,7 @@ function App() {
 
   const httpHandler = async () => {
     const url = "http://localhost:8000/fastapi/download";
+    let so = "WINDOWS";
 
     try {
       const response = await fetch(url, {
@@ -19,7 +20,7 @@ function App() {
 <api-rest-model xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 xsi:noNamespaceSchemaLocation="schema.xsd">
   <psm-model>
-    <so so-name="LINUX"/>
+    <so so-name="${so}"/>
     <technology tech-name="FASTAPI" version="0.0.0" port="4321"/>
     <project name="TIENDA"/>
   </psm-model>
@@ -72,7 +73,7 @@ xsi:noNamespaceSchemaLocation="schema.xsd">
       const urlObject = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = urlObject;
-      link.download = "mi_script.sh"; // Nombre del archivo para descargar
+      link.download = "mi_script." + (so == "WINDOWS" ? "bat" : "sh");
       document.body.appendChild(link);
       link.click();
       link.remove();

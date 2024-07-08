@@ -2,6 +2,7 @@ import os
 
 from .utils.data_types import get_python_type
 from .builder import Builder
+from .concrete_script import ConcreteScript
 
 class Director:
     """
@@ -12,7 +13,16 @@ class Director:
     """
 
     def __init__(self) -> None:
-        self._builder = None
+        self._builder: Builder = None
+        self._so: str = ""
+
+    @property
+    def so(self) -> str:
+        return self._so
+
+    @so.setter
+    def so(self, so: str) -> None:
+        self._so = so
 
     @property
     def builder(self) -> Builder:
@@ -67,20 +77,16 @@ class Director:
     """
     Creation of .sh file.
     """
-    def create_script_file(self, content: str):
-        # Obtener la ruta del directorio actual (donde está el script)
+    def create_script_file(self, content: ConcreteScript):
         current_dir = os.path.dirname(__file__)
 
-        # Construir la ruta a la carpeta2
         target_dir = os.path.join(current_dir, '..', 'fastapi')
 
-        # Asegurarse de que la carpeta2 existe
         os.makedirs(target_dir, exist_ok=True)
 
-        # Ruta completa del archivo que se creará en carpeta2
-        file_path = os.path.join(target_dir, 'prueba.sh')
+        file_name = 'prueba.'+ ("bat" if self._so=="WINDOWS" else "sh")
+        file_path = os.path.join(target_dir, file_name)
 
-        # Crear y escribir en el archivo
         with open(file_path, 'w') as file:
             file.write(content.parts_as_string())
  

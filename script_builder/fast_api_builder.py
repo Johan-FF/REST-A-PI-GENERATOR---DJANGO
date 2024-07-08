@@ -1,3 +1,5 @@
+from .script_method.windows_script import WindowsCreator
+from .script_method.linux_script import LinuxCreator
 from .builder import Builder
 from script_builder.concrete_script import ConcreteScript
 from .utils.data_types import types_to_valid_sqlalchemy_types, \
@@ -34,50 +36,49 @@ class FastAPIBuilder(Builder):
 
     def reset(self) -> None:
         self._script = ConcreteScript()
-        
-        self._script.add("#!/bin/bash")
-        self._script.add("# Nombre del proyecto y del módulo")
-        self._script.add(f'PROJECT_NAME="{FastAPIBuilder.PROJECT_NAME}"')
-        self._script.add("\n")
+        if FastAPIBuilder.OPERATING_SYSTEM=="WINDOWS":
+            self.script_method = WindowsCreator()
+        else:
+            self.script_method = LinuxCreator()
 
-        self._script.add("# Crear directorio del proyecto")
-        self._script.add('echo "Creando directorio del proyecto..."')
-        self._script.add("mkdir $PROJECT_NAME")
-        self._script.add("cd $PROJECT_NAME")
-        self._script.add("\n")
+        self.script_method.add_comment("Nombre del proyecto y del módulo")
+        self.script_method.add_enter_project_packague(FastAPIBuilder.PROJECT_NAME)
         
-        self._script.add("# Crear un entorno virtual")
-        self._script.add('echo "Creando entorno virtual..."')
-        self._script.add("python -m venv venv")
-        self._script.add("\n")
+        self.script_method.add_comment("Crear un entorno virtual")
+        self.script_method.add_print("Creando entorno virtual...")
+        self.script_method.add_command("python -m venv venv")
+        self.script_method.add_line_break()
         
-        self._script.add("# Activar el entorno virtual")
-        self._script.add('echo "Activando entorno virtual..."')
-        self._script.add("venv/Scripts/activate")
-        self._script.add("\n")
+        self.script_method.add_comment("Activar el entorno virtual")
+        self.script_method.add_print("Activando entorno virtual...")
+        if FastAPIBuilder.OPERATING_SYSTEM=="WINDOWS":
+            self.script_method.add_call("venv/Scripts/activate")
+        else:
+            self.script_method.add_command("venv/Scripts/activate")
+        self.script_method.add_line_break()
         
-        self._script.add("# Instalar FastAPI y Uvicorn")
-        self._script.add('echo "Instalando FastAPI y SQLAlchemy..."')
-        self._script.add("pip install fastapi")
-        self._script.add("pip install sqlalchemy")
-        self._script.add("\n")
+        self.script_method.add_comment("Instalar FastAPI y Uvicorn")
+        self.script_method.add_print("Instalando FastAPI y SQLAlchemy...")
+        self.script_method.add_command("pip install fastapi")
+        self.script_method.add_command("pip install sqlalchemy")
+        self.script_method.add_line_break()
         
-        self._script.add("# Crear estructura de directorios y archivos")
-        self._script.add('echo "Creando estructura de directorios y archivos..."')
-        self._script.add("mkdir config")
-        self._script.add("touch config/__init__.py")
-        self._script.add("mkdir models")
-        self._script.add("touch models/__init__.py")
-        self._script.add("mkdir routes")
-        self._script.add("touch routes/__init__.py")
-        self._script.add("mkdir schemes")
-        self._script.add("touch schemes/__init__.py")
-        self._script.add("\n")
+        self.script_method.add_comment("Crear estructura de directorios y archivos")
+        self.script_method.add_print("Creando estructura de directorios y archivos...")
+        self.script_method.add_create_packague("config")
+        self.script_method.add_create_file("config/__init__.py")
+        self.script_method.add_create_packague("models")
+        self.script_method.add_create_file("models/__init__.py")
+        self.script_method.add_create_packague("routes")
+        self.script_method.add_create_file("routes/__init__.py")
+        self.script_method.add_create_packague("schemes")
+        self.script_method.add_create_file("schemes/__init__.py")
+        self.script_method.add_line_break()
 
-        self._script.add("# Crear configuracion DB")
-        self._script.add('echo "Crear configuracion DB"')
-        self._script.add("touch config/db.py")
-        self._script.add("cat <<EOT > config/db.py")
+        self.script_method.add_comment("Crear configuracion DB")
+        self.script_method.add_print("Crear configuracion DB")
+        self.script_method.add_create_file("config/db.py")
+        
         self._script.add("from sqlalchemy import create_engine")
         self._script.add("from sqlalchemy.ext.declarative import declarative_base")
         self._script.add('from sqlalchemy.orm import sessionmaker')
@@ -87,22 +88,83 @@ class FastAPIBuilder(Builder):
         self._script.add('engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})')
         self._script.add('SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)')
         self._script.add('Base = declarative_base()')
-        self._script.add("EOT")
-        self._script.add("\n")
+        self.script_method.add_write_to_file("config/db.py",self._script)
+        self._script.reset_parts()
+        self.script_method.add_line_break()
 
-        self._script.add("# Crear .gitignore")
-        self._script.add('echo "Crear .gitignore"')
-        self._script.add("touch .gitignore")
-        self._script.add("cat <<EOT > .gitignore")
+        self.script_method.add_comment("Crear .gitignore")
+        self.script_method.add_print("Crear .gitignore")
+        self.script_method.add_create_file(".gitignore")
+        
         self._script.add("__pycache__/")
         self._script.add("venv/")
-        self._script.add("EOT")
+        self.script_method.add_write_to_file(".gitignore",self._script)
+        self._script.reset_parts()
+        self.script_method.add_line_break()
+
+        self.produce_readme_file()
+
+    def produce_app_file(self, entities_name: list[str]) -> None:
+        self.script_method.add_comment("Implementar app.py")
+        self.script_method.add_print("Implementar app.py")
+
+        self._script.add("from fastapi import FastAPI")
+        self._script.add("from fastapi.middleware.cors import CORSMiddleware")
+        for entity in entities_name:
+            entity_name_lower = entity.lower()
+            self._script.add(f"from routes.{entity_name_lower} import {entity_name_lower}")
+        self._script.add("from config.db import Base, engine")
+        self._script.add("\n")
+        self._script.add("Base.metadata.create_all(bind=engine)")
+        self._script.add("\n")
+        self._script.add("app = FastAPI(")
+        self._script.add(f'    title="{FastAPIBuilder.PROJECT_NAME}",')
+        self._script.add('    description="REST API using Python, SQLAlchemy and SQLite",')
+        self._script.add('    version="0.0.1",')
+        self._script.add("    openapi_tags=[")
+        for entity in entities_name:
+            table_name = remove_special_characters_and_capitalize(entity)+"s"
+            self._script.add("        {")
+            self._script.add(f'            "name": "{table_name}",')
+            self._script.add(f'            "description": "{table_name} endpoint"')
+            self._script.add("        },")
+        self._script.add("    ]")
+        self._script.add(")")
         self._script.add("\n")
 
-        self._script.add("# Crear README")
-        self._script.add('echo "Crear README"')
-        self._script.add("touch README.md")
-        self._script.add("cat <<EOT > README.md")
+        self._script.add("app.add_middleware(")
+        self._script.add("    CORSMiddleware,")
+        self._script.add('    allow_origins=["*"],')
+        self._script.add("    allow_credentials=True,")
+        self._script.add('    allow_methods=["*"],')
+        self._script.add('    allow_headers=["*"],')
+        self._script.add(")")
+        self._script.add("\n")
+
+        for entity in entities_name:
+            entity_name_lower = entity.lower()
+            table_name = remove_special_characters_and_capitalize(entity)+"s"
+            self._script.add(f'app.include_router({entity_name_lower}, prefix="/{entity_name_lower}s", tags=["{table_name}"])')
+        
+        self.script_method.add_write_to_file("app.py", self._script)
+        self._script.reset_parts()
+        self.script_method.add_line_break()
+
+        self.script_method.add_comment("Crear requirements.txt")
+        self.script_method.add_print("Crear requirements.txt")
+        self.script_method.add_command(f"pip freeze > requirements.txt")
+        self.script_method.add_line_break()
+
+        self.script_method.add_comment("Ejecutando servidor")
+        self.script_method.add_print("Ejecutando servidor")
+        self.script_method.add_command(f"uvicorn app:app --port {FastAPIBuilder.EXECUTE_PORT} --reload")
+        self.script_method.add_line_break()
+
+    def produce_readme_file(self) -> None:
+        self.script_method.add_comment("Crear README")
+        self.script_method.add_print("Crear README")
+        self.script_method.add_create_file("README.md")
+
         self._script.add(f"# {FastAPIBuilder.PROJECT_NAME}")
         self._script.add("\n")
         self._script.add("This is a Python project built with FastAPI that provides basic CRUD operations (Create, Read, Update, Delete) for managing entities, along with authentication using JWT tokens.")
@@ -127,7 +189,7 @@ class FastAPIBuilder(Builder):
         self._script.add("\n")
         self._script.add("~~~")
         self._script.add("python -m venv venv")
-        self._script.add("source venv/bin/activate  # On Windows, use `venv\Scripts\activate`")
+        self._script.add("source venv/bin/activate  # On Windows, use 'venv\\Scripts\\activate'")
         self._script.add("~~~")
         self._script.add("\n")
         self._script.add("3. Install the dependencies:")
@@ -158,61 +220,10 @@ class FastAPIBuilder(Builder):
         self._script.add("\n")
         self._script.add("Contributions are welcome! If you find any bugs or want to add new features, feel free to open an issue or submit a pull request.")
         self._script.add("\n")
-        self._script.add("Before submitting a pull request, please ensure that the tests pass and the code complies with the project's coding standards.")
-        self._script.add("EOT")
-        self._script.add("\n")
-
-    def produce_app_file(self, entities_name: list[str]) -> None:
-        self._script.add("# Implementar app.py")
-        self._script.add('echo "Implementar app.py"')
-        self._script.add(f"cat <<EOT > app.py")
-        self._script.add("from fastapi import FastAPI")
-        self._script.add("from fastapi.middleware.cors import CORSMiddleware")
-        for entity in entities_name:
-            entity_name_lower = entity.lower()
-            self._script.add(f"from routes.{entity_name_lower} import {entity_name_lower}")
-        self._script.add("from config.db import Base, engine")
-        self._script.add("\n")
-        self._script.add("Base.metadata.create_all(bind=engine)")
-        self._script.add("\n")
-        self._script.add("app = FastAPI(")
-        self._script.add(f'    title="{FastAPIBuilder.PROJECT_NAME}",')
-        self._script.add('    description="REST API using Python, SQLAlchemy and SQLite",')
-        self._script.add('    version="0.0.1",')
-        self._script.add("    openapi_tags=[")
-        for entity in entities_name:
-            table_name = remove_special_characters_and_capitalize(entity)+"s"
-            self._script.add("        {")
-            self._script.add(f'        "name": "{table_name}",')
-            self._script.add(f'        "description": "{table_name} endpoint"')
-            self._script.add("        },")
-        self._script.add("    ]")
-        self._script.add(")")
-        self._script.add("\n")
-
-        self._script.add("app.add_middleware(")
-        self._script.add("    CORSMiddleware,")
-        self._script.add("    allow_origins=["*"],")
-        self._script.add("    allow_credentials=True,")
-        self._script.add("    allow_methods=["*"],")
-        self._script.add("    allow_headers=["*"],")
-        self._script.add(")")
-        self._script.add("\n")
-
-        for entity in entities_name:
-            entity_name_lower = entity.lower()
-            table_name = remove_special_characters_and_capitalize(entity)+"s"
-            self._script.add(f'app.include_router({entity_name_lower}, prefix="/{entity_name_lower}s", tags=["{table_name}"])')
-        self._script.add("EOT")
-        self._script.add("\n")
-
-        self._script.add("# Crear requirements.txt")
-        self._script.add(f"pip freeze > requirements.txt")
-        self._script.add("\n")
-
-        self._script.add("# Ejecutar servidor")
-        self._script.add(f"uvicorn app:app --port {FastAPIBuilder.EXECUTE_PORT} --reload")
-        self._script.add("\n")
+        
+        self.script_method.add_write_to_file("README.md",self._script)
+        self._script.reset_parts()
+        self.script_method.add_line_break()
 
     @property
     def script(self) -> ConcreteScript:
@@ -230,24 +241,24 @@ class FastAPIBuilder(Builder):
         and you can make your builders wait for an explicit reset call from the
         client code before disposing of the previous result.
         """
-        script = self._script
+        script = self.script_method._script
         self.reset()
         return script
 
     def produce_crud(self, entity_name: str, attributes: list[dict], relations: dict[str, str]) -> None:
         entity_name_lower = entity_name.lower()
-        self._script.add("# Crear modelo y esquema")
-        self._script.add(f"touch models/{entity_name_lower}.py")
+        self.script_method.add_comment("Crear modelo y esquema")
+        self.script_method.add_create_file(f"models/{entity_name_lower}.py")
         
         table_name = remove_special_characters_and_capitalize(entity_name)+"s"
         self._create_models(entity_name_lower, table_name, relations, attributes)
 
-        self._script.add(f"touch schemes/{entity_name_lower}.py")
+        self.script_method.add_create_file(f"schemes/{entity_name_lower}.py")
         self._create_schemas(entity_name_lower, table_name, attributes)
 
-        self._script.add("# Crear rutas")
-        self._script.add(f"touch routes/{entity_name_lower}.py")
-        self._script.add(f"cat <<EOT > routes/{entity_name_lower}.py")
+        self.script_method.add_comment("# Crear rutas")
+        self.script_method.add_create_file(f"routes/{entity_name_lower}.py")
+        
         self._script.add("from fastapi import APIRouter, Depends, HTTPException")
         self._script.add("from sqlalchemy.orm import Session")
         self._script.add("\n")
@@ -275,13 +286,14 @@ class FastAPIBuilder(Builder):
         self.produce_update(entity_name_lower, table_name, pk_attribute, attributes)
         self.produce_delete(entity_name_lower, table_name, pk_attribute)
         
-        self._script.add("EOT")
-        self._script.add("\n")
+        self.script_method.add_write_to_file(f"routes/{entity_name_lower}.py",self._script)
+        self._script.reset_parts()
+        self.script_method.add_line_break()
 
     def _create_models(self, entity_name_lower: str, table_name: str, relations: dict[str, str], attributes: list[dict]) -> None:
-        self._script.add("# Implementar modelo")
-        self._script.add(f'echo "Implementar modelo {table_name}"')
-        self._script.add(f"cat <<EOT > models/{entity_name_lower}.py")
+        self.script_method.add_comment("Implementar modelo")
+        self.script_method.add_print(f"Implementar modelo {table_name}")
+
         empty_relations = len(relations)==0
         self._script.add(f"from sqlalchemy import Column, {types_to_valid_sqlalchemy_types(attributes)}{", ForeignKey" if not empty_relations else ""}")
         self._script.add("from config.db import Base")
@@ -305,13 +317,15 @@ class FastAPIBuilder(Builder):
             fk_table_name = remove_special_characters_and_capitalize(table)
             self._script.add(f"    {fk_attribute} = Column(Integer, ForeignKey('{fk_table_name}s.{fk_attribute}'))")
             self._script.add(f'    {fk_table_lower} = relationship("{fk_table_name}s", back_populates="{table_name.lower()}")')
-        self._script.add("EOT")
-        self._script.add("\n")
+        
+        self.script_method.add_write_to_file(f"models/{entity_name_lower}.py",self._script)
+        self._script.reset_parts()
+        self.script_method.add_line_break()
 
     def _create_schemas(self, entity_name_lower: str, table_name: str, attributes: list[dict]) -> None:
-        self._script.add("# Implementar esquema")
-        self._script.add(f'echo "Implementar esquema {table_name}"')
-        self._script.add(f"cat <<EOT > schemes/{entity_name_lower}.py")
+        self.script_method.add_comment("Implementar esquema")
+        self.script_method.add_print(f"Implementar esquema {table_name}")
+
         self._script.add("from typing import Optional")
         self._script.add("from pydantic import BaseModel")
         self._script.add("\n")
@@ -324,8 +338,10 @@ class FastAPIBuilder(Builder):
                 continue
 
             self._script.add(f"    {attribute_name}: {attribute.get("data-type").__name__}")
-        self._script.add("EOT")
-        self._script.add("\n")
+        
+        self.script_method.add_write_to_file(f"schemes/{entity_name_lower}.py",self._script)
+        self._script.reset_parts()
+        self.script_method.add_line_break()
 
     def produce_create(self, entity_name_lower: str, table_name: str, attributes: list[dict]) -> None:
         self._script.add(f'@{entity_name_lower}.post("/", response_model={table_name[:-1]}, description="Create a new {entity_name_lower}")')
