@@ -8,7 +8,7 @@ function App() {
 
   const httpHandler = async () => {
     const url = "http://localhost:8000/fastapi/download";
-    let so = "WINDOWS";
+    const so = "WINDOWS";
 
     try {
       const response = await fetch(url, {

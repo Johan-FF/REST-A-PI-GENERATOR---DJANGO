@@ -39,30 +39,20 @@ class WindowsCreator(CreateScript):
             if line=="\n":
                 self._script.add("echo.")
                 continue
-            if self._has_keywords(line):
-                self._script.add(f'echo "{line}"')
-            else:
-                self._script.add("echo "+line)
+            self._script.add("echo "+self._add_caret_before_quotes(line))
         self._script.add(") > "+path_file)
 
-    def _add_caret_before_quotes(self, content: str) -> str:
+    def _add_caret_before_keywords(self, content: str) -> str:
         result: str = ''
         for char in content:
             if char == '"':
                 result += '^"'
             elif char == "'":
                 result += "^'"
+            elif char == "(":
+                result += "^("
+            elif char == ")":
+                result += "^)"
             else:
                 result += char
         return result
-
-    def _has_keywords(self, content: str) -> bool:
-        keywords = [" if ", " else ", " for ", " in ", " goto ", 
-                    " call ", " set ", " echo ", " rem ", " exit ",
-                    " (", ") ", "),", ":"]
-
-        for keyword in keywords:
-            if keyword in content:
-                return True
-
-        return False
