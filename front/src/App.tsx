@@ -7,7 +7,7 @@ function App() {
   const [count, setCount] = useState(0);
 
   const httpHandler = async () => {
-    const url = "http://localhost:8000/fastapi/download";
+    const url = "http://localhost:8000/nestapi/downloadNest";
     const so = "WINDOWS";
 
     try {

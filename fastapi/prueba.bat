@@ -5,6 +5,22 @@ echo Crear directorio del proyecto
 set "PROJECT_NAME=TIENDA"
 mkdir %PROJECT_NAME%
 cd %PROJECT_NAME%
+rem Crear un entorno virtual
+echo Creando entorno virtual...
+python -m venv venv
+
+
+rem Activar el entorno virtual
+echo Activando entorno virtual...
+call venv/Scripts/activate.bat
+
+
+rem Instalar FastAPI y Uvicorn
+echo Instalando FastAPI y SQLAlchemy...
+pip install fastapi
+pip install sqlalchemy
+
+
 rem Crear estructura de directorios y archivos
 echo Creando estructura de directorios y archivos...
 mkdir config
@@ -109,7 +125,7 @@ type NUL > models/cliente.py
 rem Implementar modelo
 echo Implementar modelo Clientes
 (
-echo from sqlalchemy import Column, Integer, String, ForeignKey
+echo from sqlalchemy import Column, String, Integer, ForeignKey
 echo from config.db import Base
 echo from sqlalchemy.orm import relationship
 echo.
@@ -204,7 +220,7 @@ type NUL > models/factura.py
 rem Implementar modelo
 echo Implementar modelo Facturas
 (
-echo from sqlalchemy import Column, Integer, String, ForeignKey
+echo from sqlalchemy import Column, String, Integer, ForeignKey
 echo from config.db import Base
 echo from sqlalchemy.orm import relationship
 echo.

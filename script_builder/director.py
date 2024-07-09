@@ -43,7 +43,8 @@ class Director:
     """
 
     def build_nest_js_api_rest(self) -> None:
-        pass
+        self.create_script_file(self._builder.script)
+        
 
     def build_fast_api_api_rest(self, csm_model, relational_model) -> None:
         entities: list[str] = []
@@ -78,13 +79,14 @@ class Director:
     Creation of .sh file.
     """
     def create_script_file(self, content: ConcreteScript):
+        
         current_dir = os.path.dirname(__file__)
 
         target_dir = os.path.join(current_dir, '..', 'fastapi')
 
         os.makedirs(target_dir, exist_ok=True)
-
-        file_name = 'prueba.'+ ("bat" if self._so=="WINDOWS" else "sh")
+        
+        file_name = 'prueba2.'+ ("bat" if self._so=="WINDOWS" else "sh")
         file_path = os.path.join(target_dir, file_name)
 
         with open(file_path, 'w') as file:

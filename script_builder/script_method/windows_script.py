@@ -17,10 +17,10 @@ class WindowsCreator(CreateScript):
     def add_print(self, msg: str) -> None:
         self._script.add("echo "+msg)
     
-    def add_enter_project_packague(self, project_anme: str) -> None:
+    def add_enter_project_packague(self, project_name: str) -> None:
         self.add_comment("Crear directorio del proyecto")
         self.add_print("Crear directorio del proyecto")
-        self._script.add(f'set "PROJECT_NAME={project_anme}"')
+        self._script.add(f'set "PROJECT_NAME={project_name}"')
         self._script.add("mkdir %PROJECT_NAME%")
         self._script.add("cd %PROJECT_NAME%")
     
@@ -39,7 +39,7 @@ class WindowsCreator(CreateScript):
             if line=="\n":
                 self._script.add("echo.")
                 continue
-            self._script.add("echo "+self._add_caret_before_quotes(line))
+            self._script.add("echo "+self._add_caret_before_keywords(line))
         self._script.add(") > "+path_file)
 
     def _add_caret_before_keywords(self, content: str) -> str:
