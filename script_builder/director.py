@@ -42,7 +42,54 @@ class Director:
     building steps.
     """
 
-    def build_nest_js_api_rest(self) -> None:
+    def build_nest_js_api_rest(self, csm_model, relational_model) -> None:
+        entities: list[str] = []
+        for table in relational_model.findall("table"):
+            
+            attributes: list[dict] = []
+            for attribute in table.find("attributes").findall("attribute"):
+                attributes.append({
+                    "name": attribute.get("name"),
+                    "is-pk":  True if attribute.get("PK")=="true" else False,
+                    "is-fk": True if attribute.get("FK")=="true" else False,
+                    "nn": "true" if attribute.get("NN")=="true" else "false",
+                    "uq": "true" if attribute.get("UQ")=="true" else "false",
+                    "ai": "true" if attribute.get("AI")=="true" else "false",
+                    "data-type":  attribute.get("data-type"),
+                })
+            # print(attributes)
+            relations: list[dict] = []
+            relations2: list[dict] = []
+            try:
+                for relation in table.find("relations").findall("relation"):
+                    
+                    relations.append({
+                                    "table": relation.get("table"),
+                                    "attribute": relation.get("attribute")
+                                })
+            except:
+                print("No hay relation") 
+            
+            for table2 in relational_model.findall("table"):  
+                if table.get("name") != table2.get("name"):
+                    try:
+                        for relation2 in table2.find("relations").findall("relation"):
+                            if relation2.get("table") == table.get("name"):
+                                relations2.append({
+                                    "table": table2.get("name"),
+                                    "multiplicity": relation2.get("multiplicity")
+                                })
+                    except:
+                        print("No hay relation")
+            
+            # print(relations)
+            table_name: str = table.get("name")
+            entities.append(table_name)
+            self._builder.produce_crud(table_name, attributes, relations, relations2)
+        print("entidades")
+        print(entities)
+        self._builder.produce_app_file(entities)
+            
         self.create_script_file(self._builder.script)
         
 
@@ -67,7 +114,7 @@ class Director:
             entities.append(table_name)
             self._builder.produce_crud(table_name, attributes, relations)
         
-        self._builder.produce_app_file(entities)
+        self._builder.produce_app_file()
 
         self.create_script_file(self._builder.script)
 

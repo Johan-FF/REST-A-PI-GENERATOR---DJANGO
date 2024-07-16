@@ -17,15 +17,34 @@ class WindowsCreator(CreateScript):
     def add_print(self, msg: str) -> None:
         self._script.add("echo "+msg)
     
+    def add_print2(self, msg: str) -> None:
+        self._script.add("echo"+msg)
+        
+    
     def add_enter_project_packague(self, project_name: str) -> None:
         self.add_comment("Crear directorio del proyecto")
         self.add_print("Crear directorio del proyecto")
         self._script.add(f'set "PROJECT_NAME={project_name}"')
         self._script.add("mkdir %PROJECT_NAME%")
         self._script.add("cd %PROJECT_NAME%")
+        self.add_print(".")
+        self.add_comment("Usar PowerShell para automatizar la creación del proyecto")
+    
+    def add_cd(self, route: str) -> None:
+        self._script.add(f"cd {route}")
+        
+    def add_mkdir(self, route: str) -> None:
+        self._script.add(f"mkdir {route}")
+    
+    def add_powerShellCommand(self, route: str) -> None:
+        self._script.add(f'powershell -Command "{route}"')
+        self.add_print(".")
     
     def add_command(self, command: str) -> None:
         self._script.add(command)
+        
+    def add_pause(self) -> None:
+        self._script.add("pause")
     
     def add_call(self, path_bat_file: str) -> None:
         self._script.add("call "+path_bat_file+".bat")

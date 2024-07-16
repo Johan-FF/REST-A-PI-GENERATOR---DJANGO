@@ -30,6 +30,8 @@
       <xs:enumeration value="DECIMAL"/>
       <xs:enumeration value="VARCHAR"/>
       <xs:enumeration value="BINARY"/>
+      <xs:enumeration value="DATE"/>
+      <xs:enumeration value="DATETIME"/>
     </xs:restriction>
   </xs:simpleType>
   
@@ -81,52 +83,7 @@
           </xs:complexType>
         </xs:element>
 
-        <xs:element name="csm-model" minOccurs="1" maxOccurs="1">
-          <xs:complexType>
-            <xs:sequence>
-
-            <xs:element name="login" minOccurs="1" maxOccurs="1">
-              <xs:complexType>
-                <xs:sequence>
-                  <xs:element name="table" minOccurs="0" maxOccurs="1">
-                    <xs:complexType>
-                      <xs:attribute name="name" type="xs:string"></xs:attribute>
-                    </xs:complexType>
-                  </xs:element>
-
-                  <xs:element name="unique-field" minOccurs="0" maxOccurs="1">
-                    <xs:complexType>
-                      <xs:attribute name="attribute" type="xs:string"></xs:attribute>
-                    </xs:complexType>
-                  </xs:element>
-
-                  <xs:element name="encrypt-field" minOccurs="0" maxOccurs="1">
-                    <xs:complexType>
-                      <xs:attribute name="attribute" type="xs:string"></xs:attribute>
-                    </xs:complexType>
-                  </xs:element>
-                </xs:sequence>
-
-                <xs:attribute name="has" type="xs:boolean"/>
-              </xs:complexType>
-            </xs:element>
-
-              <xs:element name="package" minOccurs="0" maxOccurs="unbounded">
-                <xs:complexType>
-                  <xs:sequence>
-                    <xs:element name="table" minOccurs="1" maxOccurs="unbounded">
-                      <xs:complexType>
-                        <xs:attribute name="name" type="xs:string"></xs:attribute>
-                      </xs:complexType>
-                    </xs:element>
-                  </xs:sequence>
-                  <xs:attribute name="name" type="xs:string"/>
-                </xs:complexType>
-              </xs:element>
-
-            </xs:sequence>
-          </xs:complexType>
-        </xs:element>
+        
 
         <xs:element name="relational-model" minOccurs="1" maxOccurs="1">
           <xs:complexType>
@@ -158,7 +115,11 @@
                 <xs:complexType>
                   <xs:attribute use="required" name="name" type="xs:string"/>
                   <xs:attribute use="required" name="data-type" type="data-type"/>
-                  <xs:attribute name="PK" type="xs:boolean"/>
+                  <xs:attribute use="required" name="PK" type="xs:boolean"/>
+                  <xs:attribute use="required" name="FK" type="xs:boolean"/>
+                  <xs:attribute use="required" name="NN" type="xs:boolean"/>
+                  <xs:attribute use="required" name="UQ" type="xs:boolean"/>
+                  <xs:attribute use="required" name="AI" type="xs:boolean"/>
                 </xs:complexType>
               </xs:element>
             

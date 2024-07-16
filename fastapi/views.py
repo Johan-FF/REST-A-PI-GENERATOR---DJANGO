@@ -39,9 +39,10 @@ def downloadFileNest(request):
             root = tree.getroot()
             
             director.builder = NestApiBuilder(root.find('psm-model'))
-           
+            
             director.so = root.find('psm-model').find("so").get("so-name")
-            director.build_nest_js_api_rest()
+            
+            director.build_nest_js_api_rest(root.find('csm-model'), root.find('relational-model'))
             
             current_dir = os.path.dirname(os.path.abspath(__file__))
             print(current_dir)
