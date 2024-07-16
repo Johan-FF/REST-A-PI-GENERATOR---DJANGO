@@ -32,7 +32,7 @@ powershell -Command ^
     "Add-Content -Path 'factura.entity.ts' -Value '    nullable: false,';" ^
     "Add-Content -Path 'factura.entity.ts' -Value '    })';" ^
     "Add-Content -Path 'factura.entity.ts' -Value '    @JoinColumn({ name: ''fk_cliente_factura'' })';" ^
-    "Add-Content -Path 'factura.entity.ts' -Value '    cliente: Cliente;';" ^
+    "Add-Content -Path 'factura.entity.ts' -Value '    fk_cliente_factura: Cliente;';" ^
     "Add-Content -Path 'factura.entity.ts' -Value '}'"
 
 cd ..
@@ -104,7 +104,7 @@ powershell -Command ^
     "Add-Content -Path 'factura.service.ts' -Value '          }else{';" ^
     "Add-Content -Path 'factura.service.ts' -Value '             return {';" ^
     "Add-Content -Path 'factura.service.ts' -Value '                 statusCode: 200,';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '                 message: ''Usuario no encontrado'' ';" ^
+    "Add-Content -Path 'factura.service.ts' -Value '                 message: ''Not Found'' ';" ^
     "Add-Content -Path 'factura.service.ts' -Value '                 }';" ^
     "Add-Content -Path 'factura.service.ts' -Value '           }';" ^
     "Add-Content -Path 'factura.service.ts' -Value '      }catch(error) { return { statusCode: 500, message: ''Error Interno''} }';" ^
@@ -121,7 +121,7 @@ powershell -Command ^
     "Add-Content -Path 'factura.service.ts' -Value '          }else{';" ^
     "Add-Content -Path 'factura.service.ts' -Value '             return {';" ^
     "Add-Content -Path 'factura.service.ts' -Value '                 statusCode: 200,';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '                 message: ''Usuario no encontrado'' ';" ^
+    "Add-Content -Path 'factura.service.ts' -Value '                 message: ''Not Found'' ';" ^
     "Add-Content -Path 'factura.service.ts' -Value '                 }';" ^
     "Add-Content -Path 'factura.service.ts' -Value '           }';" ^
     "Add-Content -Path 'factura.service.ts' -Value '      }catch(error) { return { statusCode: 500, message: ''Error Interno''} }';" ^
@@ -211,7 +211,7 @@ powershell -Command ^
     "Add-Content -Path 'cliente.entity.ts' -Value '    id_cliente: number;';" ^
     "Add-Content -Path 'cliente.entity.ts' -Value '    @Column({ type: ''varchar'', length: 50, unique: false, nullable: true })';" ^
     "Add-Content -Path 'cliente.entity.ts' -Value '    nombre: string;';" ^
-    "Add-Content -Path 'cliente.entity.ts' -Value '    @OneToMany(() => Factura, (factura) => factura.cliente)';" ^
+    "Add-Content -Path 'cliente.entity.ts' -Value '    @OneToMany(() => Factura, (factura) => factura.fk_factura_cliente)';" ^
     "Add-Content -Path 'cliente.entity.ts' -Value '    factura: Factura[];';" ^
     "Add-Content -Path 'cliente.entity.ts' -Value '}'"
 
@@ -279,7 +279,7 @@ powershell -Command ^
     "Add-Content -Path 'cliente.service.ts' -Value '          }else{';" ^
     "Add-Content -Path 'cliente.service.ts' -Value '             return {';" ^
     "Add-Content -Path 'cliente.service.ts' -Value '                 statusCode: 200,';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '                 message: ''Usuario no encontrado'' ';" ^
+    "Add-Content -Path 'cliente.service.ts' -Value '                 message: ''Not Found'' ';" ^
     "Add-Content -Path 'cliente.service.ts' -Value '                 }';" ^
     "Add-Content -Path 'cliente.service.ts' -Value '           }';" ^
     "Add-Content -Path 'cliente.service.ts' -Value '      }catch(error) { return { statusCode: 500, message: ''Error Interno''} }';" ^
@@ -296,7 +296,7 @@ powershell -Command ^
     "Add-Content -Path 'cliente.service.ts' -Value '          }else{';" ^
     "Add-Content -Path 'cliente.service.ts' -Value '             return {';" ^
     "Add-Content -Path 'cliente.service.ts' -Value '                 statusCode: 200,';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '                 message: ''Usuario no encontrado'' ';" ^
+    "Add-Content -Path 'cliente.service.ts' -Value '                 message: ''Not Found'' ';" ^
     "Add-Content -Path 'cliente.service.ts' -Value '                 }';" ^
     "Add-Content -Path 'cliente.service.ts' -Value '           }';" ^
     "Add-Content -Path 'cliente.service.ts' -Value '      }catch(error) { return { statusCode: 500, message: ''Error Interno''} }';" ^
