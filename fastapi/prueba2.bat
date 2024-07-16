@@ -1,429 +1,463 @@
 @echo off
-rem Nombre del proyecto
+rem Nombre del proyecto y del m�dulo
 rem Crear directorio del proyecto
 echo Crear directorio del proyecto
 set "PROJECT_NAME=TIENDA"
 mkdir %PROJECT_NAME%
 cd %PROJECT_NAME%
-echo .
-rem Usar PowerShell para automatizar la creaci�n del proyecto
-powershell -Command "Start-Process cmd -ArgumentList '/c nest new %PROJECT_NAME%','--package-manager npm' -NoNewWindow -Wait"
-echo .
-rem Entrando src...
-cd tienda\src
-rem Creando modulo factura...
-echo Creando modulo factura...
-powershell -Command "Start-Process cmd -ArgumentList '/c nest generate resource factura ' -NoNewWindow -Wait"
-echo .
-cd factura
-cd entities
-@echo off
-powershell -Command ^
-    "Set-Content -Path 'factura.entity.ts' -Value $null;" ^
-    "Add-Content -Path 'factura.entity.ts' -Value 'import { Column, Entity, PrimaryGeneratedColumn, ManyToOne, OneToMany, JoinColumn} from ''typeorm'';';" ^
-    "Add-Content -Path 'factura.entity.ts' -Value 'import { Cliente } from ''src/cliente/entities/cliente.entity'';';" ^
-    "Add-Content -Path 'factura.entity.ts' -Value '@Entity()';" ^
-    "Add-Content -Path 'factura.entity.ts' -Value 'export class Factura {';" ^
-    "Add-Content -Path 'factura.entity.ts' -Value '    @PrimaryGeneratedColumn()';" ^
-    "Add-Content -Path 'factura.entity.ts' -Value '    id_factura: number;';" ^
-    "Add-Content -Path 'factura.entity.ts' -Value '    @Column({ type: ''integer'', unique: false, nullable: false})';" ^
-    "Add-Content -Path 'factura.entity.ts' -Value '    fk_cliente: number;';" ^
-    "Add-Content -Path 'factura.entity.ts' -Value '    @ManyToOne(() => Cliente, (cliente) => cliente.factura, {';" ^
-    "Add-Content -Path 'factura.entity.ts' -Value '    nullable: false,';" ^
-    "Add-Content -Path 'factura.entity.ts' -Value '    })';" ^
-    "Add-Content -Path 'factura.entity.ts' -Value '    @JoinColumn({ name: ''fk_cliente_factura'' })';" ^
-    "Add-Content -Path 'factura.entity.ts' -Value '    cliente: Cliente;';" ^
-    "Add-Content -Path 'factura.entity.ts' -Value '}'"
+rem Crear un entorno virtual
+echo Creando entorno virtual...
+python -m venv venv
 
-cd ..
-cd ..
-cd factura
-cd dto
-@echo off
-powershell -Command ^
-    "Set-Content -Path 'create-factura.dto.ts' -Value $null;" ^
-    "Add-Content -Path 'create-factura.dto.ts' -Value 'import { IsString, IsNumber, IsNotEmpty, IsPositive, IsBoolean, IsBooleanString, IsDate, IsEmpty, IsOptional, Min} from ''class-validator'';';" ^
-    "Add-Content -Path 'create-factura.dto.ts' -Value 'import { Transform, TransformFnParams } from ''class-transformer'';';" ^
-    "Add-Content -Path 'create-factura.dto.ts' -Value 'import { PartialType } from ''@nestjs/mapped-types'';';" ^
-    "Add-Content -Path 'create-factura.dto.ts' -Value 'import { ApiProperty } from ''@nestjs/swagger'';';" ^
-    "Add-Content -Path 'create-factura.dto.ts' -Value 'import { Cliente } from ''src/cliente/entities/cliente.entity'';';" ^
-    "Add-Content -Path 'create-factura.dto.ts' -Value 'function stringToDate({ value }: TransformFnParams) {return new Date(value);}';" ^
-    "Add-Content -Path 'create-factura.dto.ts' -Value 'export class CreateFacturaDto  { ';" ^
-    "Add-Content -Path 'create-factura.dto.ts' -Value '    @ApiProperty()';" ^
-    "Add-Content -Path 'create-factura.dto.ts' -Value '    @IsNotEmpty()';" ^
-    "Add-Content -Path 'create-factura.dto.ts' -Value '    @ApiProperty()';" ^
-    "Add-Content -Path 'create-factura.dto.ts' -Value '    @IsNotEmpty()';" ^
-    "Add-Content -Path 'create-factura.dto.ts' -Value '    @IsNumber()';" ^
-    "Add-Content -Path 'create-factura.dto.ts' -Value '    fk_cliente:number;';" ^
-    "Add-Content -Path 'create-factura.dto.ts' -Value '    @IsNotEmpty()';" ^
-    "Add-Content -Path 'create-factura.dto.ts' -Value '    fk_cliente_factura:Cliente';" ^
-    "Add-Content -Path 'create-factura.dto.ts' -Value '}';" ^
 
-cd ..
-cd ..
-cd factura
-@echo off
-powershell -Command ^
-    "Set-Content -Path 'factura.service.ts' -Value $null;" ^
-    "Add-Content -Path 'factura.service.ts' -Value 'import { Injectable, NotFoundException } from ''@nestjs/common'';';" ^
-    "Add-Content -Path 'factura.service.ts' -Value 'import { Repository, DeepPartial } from ''typeorm'';';" ^
-    "Add-Content -Path 'factura.service.ts' -Value 'import { CreateFacturaDto } from ''./dto/create-factura.dto'';';" ^
-    "Add-Content -Path 'factura.service.ts' -Value 'import { UpdateFacturaDto } from ''./dto/update-factura.dto'';';" ^
-    "Add-Content -Path 'factura.service.ts' -Value 'import { Factura } from ''./entities/factura.entity'';';" ^
-    "Add-Content -Path 'factura.service.ts' -Value 'import { InjectRepository } from ''@nestjs/typeorm'';';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '@Injectable()';" ^
-    "Add-Content -Path 'factura.service.ts' -Value 'export class FacturaService {';" ^
-    "Add-Content -Path 'factura.service.ts' -Value 'constructor(@InjectRepository(Factura)private facturaRepo: Repository<Factura>,){ }';" ^
-    "Add-Content -Path 'factura.service.ts' -Value ' async create(data: CreateFacturaDto){';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '     try{';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '         const newObject = this.facturaRepo.create(data);';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '         return {';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '             statusCode: 201,';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '             message: ''Create'',';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '             response: await this.facturaRepo.save(newObject)';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '             }';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '     }catch(error) {';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '         return {';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '             statusCode: 500,';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '             message: ''Error Interno'' ';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '             }';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '     }';" ^
-    "Add-Content -Path 'factura.service.ts' -Value ' }';" ^
-    "Add-Content -Path 'factura.service.ts' -Value ' async findAll(){ return await this.facturaRepo.find({relations: [''fk_cliente_factura'',] });}';" ^
-    "Add-Content -Path 'factura.service.ts' -Value ' async findOne(id_factura: number){ return await this.facturaRepo.find({where:{ id_factura: id_factura}, relations: [''fk_cliente_factura'',] });}';" ^
-    "Add-Content -Path 'factura.service.ts' -Value ' async update(id_factura: number, data: UpdateFacturaDto){';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '     try{';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '         const upd = await this.facturaRepo.findOne({where:{ id_factura: id_factura} });';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '         if(upd){';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '             await this.facturaRepo.merge(upd, data);';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '             return {';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '                 statusCode: 201,';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '                 message: ''Update'',';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '                 response: await this.facturaRepo.save(upd)';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '             }';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '          }else{';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '             return {';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '                 statusCode: 200,';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '                 message: ''Usuario no encontrado'' ';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '                 }';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '           }';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '      }catch(error) { return { statusCode: 500, message: ''Error Interno''} }';" ^
-    "Add-Content -Path 'factura.service.ts' -Value ' }';" ^
-    "Add-Content -Path 'factura.service.ts' -Value ' async remove(id_factura: number){';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '     try{';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '         const dlt = await this.facturaRepo.findOne({where:{ id_factura: id_factura} });';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '         if(dlt){';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '             await this.facturaRepo.delete(dlt);';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '             return {';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '                 statusCode: 200,';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '                 message: ''Delete'',';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '             }';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '          }else{';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '             return {';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '                 statusCode: 200,';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '                 message: ''Usuario no encontrado'' ';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '                 }';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '           }';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '      }catch(error) { return { statusCode: 500, message: ''Error Interno''} }';" ^
-    "Add-Content -Path 'factura.service.ts' -Value ' }';" ^
-    "Add-Content -Path 'factura.service.ts' -Value '}';" ^
+rem Activar el entorno virtual
+echo Activando entorno virtual...
+call venv/Scripts/activate.bat
 
-cd ..
-cd ..
-cd factura
-@echo off
-powershell -Command ^
-    "Set-Content -Path 'factura.module.ts' -Value $null;" ^
-    "Add-Content -Path 'factura.module.ts' -Value 'import { Module } from ''@nestjs/common'';';" ^
-    "Add-Content -Path 'factura.module.ts' -Value 'import { TypeOrmModule } from ''@nestjs/typeorm'';';" ^
-    "Add-Content -Path 'factura.module.ts' -Value 'import { FacturaService } from ''./factura.service'';';" ^
-    "Add-Content -Path 'factura.module.ts' -Value 'import { FacturaController } from ''./factura.controller'';';" ^
-    "Add-Content -Path 'factura.module.ts' -Value 'import { Factura } from ''./entities/factura.entity'';';" ^
-    "Add-Content -Path 'factura.module.ts' -Value '@Module({';" ^
-    "Add-Content -Path 'factura.module.ts' -Value '  imports: [TypeOrmModule.forFeature([Factura])],';" ^
-    "Add-Content -Path 'factura.module.ts' -Value '  controllers: [FacturaController],';" ^
-    "Add-Content -Path 'factura.module.ts' -Value '  providers: [FacturaService],';" ^
-    "Add-Content -Path 'factura.module.ts' -Value '  exports: [FacturaService],';" ^
-    "Add-Content -Path 'factura.module.ts' -Value '})';" ^
-    "Add-Content -Path 'factura.module.ts' -Value 'export class FacturaModule { }';"
 
-@echo off
-powershell -Command ^
-    "Set-Content -Path 'factura.controller.ts' -Value $null;" ^
-    "Add-Content -Path 'factura.controller.ts' -Value 'import { Controller, Get, Post, Body, Patch, Param, Delete, Put, UsePipes, ValidationPipe, ParseIntPipe } from ''@nestjs/common'';';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value 'import { ApiBody, ApiOperation, ApiResponse, ApiTags } from ''@nestjs/swagger'';';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value 'import { FacturaService } from ''./factura.service'';';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value 'import { CreateFacturaDto } from ''./dto/create-factura.dto'';';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value 'import { UpdateFacturaDto } from ''./dto/update-factura.dto'';';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value '@Controller(''factura'')';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value '@ApiTags(''Factura'')';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value 'export class FacturaController {';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value 'constructor(private readonly facturaService: FacturaService) { }';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value '@Post()';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value '@UsePipes(new ValidationPipe())';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value '@ApiOperation({ summary: ''Create Factura'' })';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value '@ApiBody({ type: CreateFacturaDto })';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value 'create(@Body() createFacturaDto: CreateFacturaDto) {';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value '   return this.facturaService.create(createFacturaDto);';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value '}';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value '@Get()';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value '@ApiOperation({ summary: ''Find All Factura'' })';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value 'findAll() {';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value '   return this.facturaService.findAll();';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value '}';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value '@Get('':id_factura'')';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value '@ApiOperation({ summary: ''Find One Factura'' })';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value '@UsePipes(new ValidationPipe())';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value 'findOne(@Param('':id_factura'') id: number) {';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value '   return this.facturaService.findOne(+id);';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value '}';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value '@Put('':id_factura'')';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value '@UsePipes(new ValidationPipe())';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value '@ApiOperation({ summary: ''Update Factura'' })';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value '@ApiBody({ type: UpdateFacturaDto })';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value 'update(@Param('':id_factura'') id: number, @Body() updateFacturaDto: UpdateFacturaDto) {';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value '   return this.facturaService.update(+id, updateFacturaDto);';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value '}';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value '@Delete('':id_factura'')';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value '@ApiOperation({ summary: ''Delete Factura'' })';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value '@UsePipes(new ValidationPipe())';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value 'remove(@Param('':id_factura'') id: number) {';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value '   return this.facturaService.remove(+id);';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value '}';" ^
-    "Add-Content -Path 'factura.controller.ts' -Value '}';" ^
+rem Instalar FastAPI y Uvicorn
+echo Instalando FastAPI y SQLAlchemy...
+pip install fastapi
+pip install sqlalchemy
 
-cd ..
-cd ..
-rem Creando modulo cliente...
-echo Creando modulo cliente...
-powershell -Command "Start-Process cmd -ArgumentList '/c nest generate resource cliente ' -NoNewWindow -Wait"
-echo .
-cd cliente
-cd entities
-@echo off
-powershell -Command ^
-    "Set-Content -Path 'cliente.entity.ts' -Value $null;" ^
-    "Add-Content -Path 'cliente.entity.ts' -Value 'import { Column, Entity, PrimaryGeneratedColumn, ManyToOne, OneToMany, JoinColumn} from ''typeorm'';';" ^
-    "Add-Content -Path 'cliente.entity.ts' -Value 'import { Factura } from ''src/factura/entities/factura.entity'';';" ^
-    "Add-Content -Path 'cliente.entity.ts' -Value '@Entity()';" ^
-    "Add-Content -Path 'cliente.entity.ts' -Value 'export class Cliente {';" ^
-    "Add-Content -Path 'cliente.entity.ts' -Value '    @PrimaryGeneratedColumn()';" ^
-    "Add-Content -Path 'cliente.entity.ts' -Value '    id_cliente: number;';" ^
-    "Add-Content -Path 'cliente.entity.ts' -Value '    @Column({ type: ''varchar'', length: 50, unique: false, nullable: true })';" ^
-    "Add-Content -Path 'cliente.entity.ts' -Value '    nombre: string;';" ^
-    "Add-Content -Path 'cliente.entity.ts' -Value '    @OneToMany(() => Factura, (factura) => factura.cliente)';" ^
-    "Add-Content -Path 'cliente.entity.ts' -Value '    factura: Factura[];';" ^
-    "Add-Content -Path 'cliente.entity.ts' -Value '}'"
 
-cd ..
-cd ..
-cd cliente
-cd dto
-@echo off
-powershell -Command ^
-    "Set-Content -Path 'create-cliente.dto.ts' -Value $null;" ^
-    "Add-Content -Path 'create-cliente.dto.ts' -Value 'import { IsString, IsNumber, IsNotEmpty, IsPositive, IsBoolean, IsBooleanString, IsDate, IsEmpty, IsOptional, Min} from ''class-validator'';';" ^
-    "Add-Content -Path 'create-cliente.dto.ts' -Value 'import { Transform, TransformFnParams } from ''class-transformer'';';" ^
-    "Add-Content -Path 'create-cliente.dto.ts' -Value 'import { PartialType } from ''@nestjs/mapped-types'';';" ^
-    "Add-Content -Path 'create-cliente.dto.ts' -Value 'import { ApiProperty } from ''@nestjs/swagger'';';" ^
-    "Add-Content -Path 'create-cliente.dto.ts' -Value 'function stringToDate({ value }: TransformFnParams) {return new Date(value);}';" ^
-    "Add-Content -Path 'create-cliente.dto.ts' -Value 'export class CreateClienteDto  { ';" ^
-    "Add-Content -Path 'create-cliente.dto.ts' -Value '    @ApiProperty()';" ^
-    "Add-Content -Path 'create-cliente.dto.ts' -Value '    @IsNotEmpty()';" ^
-    "Add-Content -Path 'create-cliente.dto.ts' -Value '    @IsString()';" ^
-    "Add-Content -Path 'create-cliente.dto.ts' -Value '    nombre:string;';" ^
-    "Add-Content -Path 'create-cliente.dto.ts' -Value '}';" ^
+rem Crear estructura de directorios y archivos
+echo Creando estructura de directorios y archivos...
+mkdir config
+type NUL > config/__init__.py
+mkdir models
+type NUL > models/__init__.py
+mkdir routes
+type NUL > routes/__init__.py
+mkdir schemes
+type NUL > schemes/__init__.py
 
-cd ..
-cd ..
-cd cliente
-@echo off
-powershell -Command ^
-    "Set-Content -Path 'cliente.service.ts' -Value $null;" ^
-    "Add-Content -Path 'cliente.service.ts' -Value 'import { Injectable, NotFoundException } from ''@nestjs/common'';';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value 'import { Repository, DeepPartial } from ''typeorm'';';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value 'import { CreateClienteDto } from ''./dto/create-cliente.dto'';';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value 'import { UpdateClienteDto } from ''./dto/update-cliente.dto'';';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value 'import { Cliente } from ''./entities/cliente.entity'';';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value 'import { InjectRepository } from ''@nestjs/typeorm'';';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '@Injectable()';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value 'export class ClienteService {';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value 'constructor(@InjectRepository(Cliente)private clienteRepo: Repository<Cliente>,){ }';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value ' async create(data: CreateClienteDto){';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '     try{';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '         const newObject = this.clienteRepo.create(data);';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '         return {';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '             statusCode: 201,';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '             message: ''Create'',';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '             response: await this.clienteRepo.save(newObject)';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '             }';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '     }catch(error) {';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '         return {';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '             statusCode: 500,';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '             message: ''Error Interno'' ';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '             }';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '     }';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value ' }';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value ' async findAll(){ return await this.clienteRepo.find({relations: [] });}';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value ' async findOne(id_cliente: number){ return await this.clienteRepo.find({where:{ id_cliente: id_cliente}, relations: [] });}';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value ' async update(id_cliente: number, data: UpdateClienteDto){';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '     try{';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '         const upd = await this.clienteRepo.findOne({where:{ id_cliente: id_cliente} });';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '         if(upd){';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '             await this.clienteRepo.merge(upd, data);';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '             return {';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '                 statusCode: 201,';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '                 message: ''Update'',';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '                 response: await this.clienteRepo.save(upd)';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '             }';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '          }else{';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '             return {';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '                 statusCode: 200,';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '                 message: ''Usuario no encontrado'' ';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '                 }';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '           }';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '      }catch(error) { return { statusCode: 500, message: ''Error Interno''} }';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value ' }';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value ' async remove(id_cliente: number){';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '     try{';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '         const dlt = await this.clienteRepo.findOne({where:{ id_cliente: id_cliente} });';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '         if(dlt){';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '             await this.clienteRepo.delete(dlt);';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '             return {';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '                 statusCode: 200,';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '                 message: ''Delete'',';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '             }';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '          }else{';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '             return {';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '                 statusCode: 200,';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '                 message: ''Usuario no encontrado'' ';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '                 }';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '           }';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '      }catch(error) { return { statusCode: 500, message: ''Error Interno''} }';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value ' }';" ^
-    "Add-Content -Path 'cliente.service.ts' -Value '}';" ^
 
-cd ..
-cd ..
-cd cliente
-@echo off
-powershell -Command ^
-    "Set-Content -Path 'cliente.module.ts' -Value $null;" ^
-    "Add-Content -Path 'cliente.module.ts' -Value 'import { Module } from ''@nestjs/common'';';" ^
-    "Add-Content -Path 'cliente.module.ts' -Value 'import { TypeOrmModule } from ''@nestjs/typeorm'';';" ^
-    "Add-Content -Path 'cliente.module.ts' -Value 'import { ClienteService } from ''./cliente.service'';';" ^
-    "Add-Content -Path 'cliente.module.ts' -Value 'import { ClienteController } from ''./cliente.controller'';';" ^
-    "Add-Content -Path 'cliente.module.ts' -Value 'import { Cliente } from ''./entities/cliente.entity'';';" ^
-    "Add-Content -Path 'cliente.module.ts' -Value '@Module({';" ^
-    "Add-Content -Path 'cliente.module.ts' -Value '  imports: [TypeOrmModule.forFeature([Cliente])],';" ^
-    "Add-Content -Path 'cliente.module.ts' -Value '  controllers: [ClienteController],';" ^
-    "Add-Content -Path 'cliente.module.ts' -Value '  providers: [ClienteService],';" ^
-    "Add-Content -Path 'cliente.module.ts' -Value '  exports: [ClienteService],';" ^
-    "Add-Content -Path 'cliente.module.ts' -Value '})';" ^
-    "Add-Content -Path 'cliente.module.ts' -Value 'export class ClienteModule { }';"
+rem Crear configuracion DB
+echo Crear configuracion DB
+type NUL > config/db.py
+(
+echo from sqlalchemy import create_engine
+echo from sqlalchemy.ext.declarative import declarative_base
+echo from sqlalchemy.orm import sessionmaker
+echo.
+echo SQLALCHEMY_DATABASE_URL = ^"sqlite:///./test.db^"
+echo.
+echo engine = create_engine^(SQLALCHEMY_DATABASE_URL, connect_args={^"check_same_thread^": False}^)
+echo SessionLocal = sessionmaker^(autocommit=False, autoflush=False, bind=engine^)
+echo Base = declarative_base^(^)
+) > config/db.py
 
-@echo off
-powershell -Command ^
-    "Set-Content -Path 'cliente.controller.ts' -Value $null;" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value 'import { Controller, Get, Post, Body, Patch, Param, Delete, Put, UsePipes, ValidationPipe, ParseIntPipe } from ''@nestjs/common'';';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value 'import { ApiBody, ApiOperation, ApiResponse, ApiTags } from ''@nestjs/swagger'';';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value 'import { ClienteService } from ''./cliente.service'';';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value 'import { CreateClienteDto } from ''./dto/create-cliente.dto'';';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value 'import { UpdateClienteDto } from ''./dto/update-cliente.dto'';';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value '@Controller(''cliente'')';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value '@ApiTags(''Cliente'')';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value 'export class ClienteController {';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value 'constructor(private readonly clienteService: ClienteService) { }';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value '@Post()';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value '@UsePipes(new ValidationPipe())';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value '@ApiOperation({ summary: ''Create Cliente'' })';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value '@ApiBody({ type: CreateClienteDto })';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value 'create(@Body() createClienteDto: CreateClienteDto) {';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value '   return this.clienteService.create(createClienteDto);';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value '}';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value '@Get()';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value '@ApiOperation({ summary: ''Find All Cliente'' })';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value 'findAll() {';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value '   return this.clienteService.findAll();';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value '}';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value '@Get('':id_cliente'')';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value '@ApiOperation({ summary: ''Find One Cliente'' })';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value '@UsePipes(new ValidationPipe())';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value 'findOne(@Param('':id_cliente'') id: number) {';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value '   return this.clienteService.findOne(+id);';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value '}';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value '@Put('':id_cliente'')';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value '@UsePipes(new ValidationPipe())';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value '@ApiOperation({ summary: ''Update Cliente'' })';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value '@ApiBody({ type: UpdateClienteDto })';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value 'update(@Param('':id_cliente'') id: number, @Body() updateClienteDto: UpdateClienteDto) {';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value '   return this.clienteService.update(+id, updateClienteDto);';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value '}';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value '@Delete('':id_cliente'')';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value '@ApiOperation({ summary: ''Delete Cliente'' })';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value '@UsePipes(new ValidationPipe())';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value 'remove(@Param('':id_cliente'') id: number) {';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value '   return this.clienteService.remove(+id);';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value '}';" ^
-    "Add-Content -Path 'cliente.controller.ts' -Value '}';" ^
 
-cd ..
-cd ..
-cd ..
-powershell -Command "Start-Process cmd -ArgumentList '/c npm i @nestjs/typeorm typeorm sqlite3' -NoNewWindow -Wait"
-echo .
-rem Crear la base de datos con un script de Python incluido en el archivo .bat
-echo Creando la base de datos SQLite...
-echo .
-cd src
-@echo off
-powershell -Command ^
-    "Set-Content -Path 'app.module.ts' -Value $null;" ^
-    "Add-Content -Path 'app.module.ts' -Value 'import { Module } from ''@nestjs/common'';';" ^
-    "Add-Content -Path 'app.module.ts' -Value 'import { AppController } from ''./app.controller'';';" ^
-    "Add-Content -Path 'app.module.ts' -Value 'import { AppService } from ''./app.service'';';" ^
-    "Add-Content -Path 'app.module.ts' -Value 'import { TypeOrmModule } from ''@nestjs/typeorm'';';" ^
-    "Add-Content -Path 'app.module.ts' -Value 'import { FacturaModule } from ''./factura/factura.module'';';" ^
-    "Add-Content -Path 'app.module.ts' -Value 'import { Factura } from ''./factura/entities/factura.entity'';';" ^
-    "Add-Content -Path 'app.module.ts' -Value 'import { ClienteModule } from ''./cliente/cliente.module'';';" ^
-    "Add-Content -Path 'app.module.ts' -Value 'import { Cliente } from ''./cliente/entities/cliente.entity'';';" ^
-    "Add-Content -Path 'app.module.ts' -Value '@Module({';" ^
-    "Add-Content -Path 'app.module.ts' -Value 'imports: [TypeOrmModule.forRoot({type: ''sqlite'', database: ''database.sqlite'',entities: [Factura,Cliente,], synchronize: true, }), TypeOrmModule.forFeature([Factura,Cliente,]), FacturaModule,ClienteModule,],';" ^
-    "Add-Content -Path 'app.module.ts' -Value 'controllers: [AppController],';" ^
-    "Add-Content -Path 'app.module.ts' -Value 'providers: [AppService],';" ^
-    "Add-Content -Path 'app.module.ts' -Value '})';" ^
-    "Add-Content -Path 'app.module.ts' -Value 'export class AppModule { }';"
-@echo off
-powershell -Command ^
-    "Set-Content -Path 'main.ts' -Value $null;" ^
-    "Add-Content -Path 'main.ts' -Value 'import { NestFactory, Reflector } from ''@nestjs/core'';';" ^
-    "Add-Content -Path 'main.ts' -Value 'import { AppModule } from ''./app.module'';';" ^
-    "Add-Content -Path 'main.ts' -Value 'import { ClassSerializerInterceptor } from ''@nestjs/common'';';" ^
-    "Add-Content -Path 'main.ts' -Value 'import { SwaggerModule, DocumentBuilder } from ''@nestjs/swagger'';';" ^
-    "Add-Content -Path 'main.ts' -Value 'async function bootstrap() {';" ^
-    "Add-Content -Path 'main.ts' -Value '   const app = await NestFactory.create(AppModule);';" ^
-    "Add-Content -Path 'main.ts' -Value '   const config = new DocumentBuilder()';" ^
-    "Add-Content -Path 'main.ts' -Value '  .setTitle(''Api Rest Tienda'')';" ^
-    "Add-Content -Path 'main.ts' -Value '  .setDescription(''Api Rest - Tienda'')';" ^
-    "Add-Content -Path 'main.ts' -Value '  .setVersion(''0.0.0'')';" ^
-    "Add-Content -Path 'main.ts' -Value '  .build();';" ^
-    "Add-Content -Path 'main.ts' -Value '  const document = SwaggerModule.createDocument(app, config);';" ^
-    "Add-Content -Path 'main.ts' -Value '  SwaggerModule.setup(''api'', app, document);';" ^
-    "Add-Content -Path 'main.ts' -Value '  app.enableCors();';" ^
-    "Add-Content -Path 'main.ts' -Value '  app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));';" ^
-    "Add-Content -Path 'main.ts' -Value '  await app.listen(4321);';" ^
-    "Add-Content -Path 'main.ts' -Value '}';" ^
-    "Add-Content -Path 'main.ts' -Value 'bootstrap();';" ^
+rem Crear .gitignore
+echo Crear .gitignore
+type NUL > .gitignore
+(
+echo __pycache__/
+echo venv/
+) > .gitignore
 
-cd ..
-powershell -Command "Start-Process cmd -ArgumentList '/c npm i class-validator' -NoNewWindow -Wait"
-echo .
-powershell -Command "Start-Process cmd -ArgumentList '/c npm i class-transformer' -NoNewWindow -Wait"
-echo .
-powershell -Command "Start-Process cmd -ArgumentList '/c npm i @nestjs/mapped-types' -NoNewWindow -Wait"
-echo .
-powershell -Command "Start-Process cmd -ArgumentList '/c npm i @nestjs/swagger' -NoNewWindow -Wait"
-echo .
-powershell -Command "Start-Process cmd -ArgumentList '/c npm run start:dev' -NoNewWindow -Wait"
-echo .
-pause
+
+rem Crear README
+echo Crear README
+type NUL > README.md
+(
+echo # TIENDA
+echo.
+echo This is a Python project built with FastAPI that provides basic CRUD operations ^(Create, Read, Update, Delete^) for managing entities, along with authentication using JWT tokens.
+echo.
+echo ## Requirements
+echo.
+echo - Python 3.10+
+echo - FastAPI
+echo - SQLAlchemy
+echo - PyJWT
+echo.
+echo ## Installation
+echo.
+echo 1. Clone the repository:
+echo.
+echo ~~~
+echo git clone https://github.com/[YOUR-USERNAME]/[YOUR-REPOSIROTY].git
+echo cd [YOUR-REPOSIROTY]
+echo ~~~
+echo.
+echo 2. Create a virtual environment ^(optional but recommended^):
+echo.
+echo ~~~
+echo python -m venv venv
+echo source venv/bin/activate  # On Windows, use ^'venv\Scripts\activate^'
+echo ~~~
+echo.
+echo 3. Install the dependencies:
+echo.
+echo ~~~
+echo pip install -r requirements.txt
+echo ~~~
+echo.
+echo ## Configuration
+echo.
+echo Before running the application, make sure to configure the database connection in [YOUR-REPOSIROTY]/config/db.py and configure the CORS in [YOUR-REPOSIROTY]/app.py:
+echo.
+echo ~~~
+echo     allow_origins=[^"https://example.com^", ^"https://anotherdomain.com^"],
+echo ~~~
+echo.
+echo ## Usage
+echo.
+echo Run the FastAPI application with:
+echo.
+echo ~~~
+echo uvicorn app:app --port 4321 --reload
+echo ~~~
+echo.
+echo This will start the development server, and you can access the API documentation ^(Swagger^) at http://localhost:4321/docs.
+echo.
+echo ## Contributing
+echo.
+echo Contributions are welcome! If you find any bugs or want to add new features, feel free to open an issue or submit a pull request.
+echo.
+) > README.md
+
+
+rem Crear modelo y esquema
+type NUL > models/factura.py
+rem Implementar modelo
+echo Implementar modelo Facturas
+(
+echo from sqlalchemy import Column, Integer, Float, ForeignKey
+echo from config.db import Base
+echo from sqlalchemy.orm import relationship
+echo.
+echo class Facturas^(Base^):
+echo     __tablename__ = ^"Facturas^"
+echo.
+echo     id_factura = Column^(Integer, primary_key=True, nullable=False, unique=True, autoincrement=True, index=True^)
+echo     precio = Column^(Float, nullable=False, index=True^)
+echo     fk_cliente = Column^(Integer, ForeignKey^(^'Clientes.id_cliente^'^)^)
+echo     clientes = relationship^(^"Clientes^", back_populates=^"facturas^"^)
+echo     fk_tipo = Column^(Integer, ForeignKey^(^'Tipos.id_tipo^'^)^)
+echo     tipos = relationship^(^"Tipos^", back_populates=^"facturas^"^)
+) > models/factura.py
+
+
+type NUL > schemes/factura.py
+rem Implementar esquema
+echo Implementar esquema Facturas
+(
+echo from typing import Optional
+echo from pydantic import BaseModel
+echo.
+echo class Factura^(BaseModel^):
+echo     precio: float
+echo     fk_cliente: int
+echo     fk_tipo: int
+) > schemes/factura.py
+
+
+rem # Crear rutas
+echo # Crear rutas factura
+type NUL > routes/factura.py
+(
+echo from fastapi import APIRouter, Depends, HTTPException
+echo from sqlalchemy.orm import Session
+echo.
+echo from models.factura import Facturas
+echo from schemes.factura import Factura
+echo.
+echo from config.db import SessionLocal
+echo.
+echo factura = APIRouter^(^)
+echo.
+echo def get_db^(^):
+echo     db = SessionLocal^(^)
+echo     try:
+echo         yield db
+echo     finally:
+echo         db.close^(^)
+echo.
+echo @factura.post^(^"/^", response_model=Factura, description=^"Create a new factura^"^)
+echo def create_factura^(factura: Factura, db: Session = Depends^(get_db^)^):
+echo     db_item = Facturas^(precio=factura.precio, fk_cliente=factura.fk_cliente, fk_tipo=factura.fk_tipo^)
+echo     db.add^(db_item^)
+echo     db.commit^(^)
+echo     db.refresh^(db_item^)
+echo     return db_item
+echo.
+echo @factura.get^(^"/all^", response_model=list[Factura], description=^"Get a list of all facturas^"^)
+echo def read_facturas^(skip: int = 0, limit: int = 10, db: Session = Depends^(get_db^)^):
+echo     return db.query^(Facturas^).offset^(skip^).limit^(limit^).all^(^)
+echo.
+echo @factura.get^(^"/{id}^", response_model=Factura, description=^"Get a single factura by Id^"^)
+echo def read_factura^(id: int, db: Session = Depends^(get_db^)^):
+echo     db_item = db.query^(Facturas^).filter^(Facturas.id_factura == id^).first^(^)
+echo     if db_item is None:
+echo         raise HTTPException^(status_code=404, detail=^"Item not found^"^)
+echo     return db_item
+echo.
+echo @factura.put^(^"/update/{id}^", response_model=Factura, description=^"Update a factura by Id^"^)
+echo def update_factura^(id: int, factura: Factura, db: Session = Depends^(get_db^)^):
+echo     db_item = db.query^(Facturas^).filter^(Facturas.id_factura == id^).first^(^)
+echo     if db_item:
+echo         db_item.precio = factura.precio
+echo         db_item.fk_cliente = factura.fk_cliente
+echo         db_item.fk_tipo = factura.fk_tipo
+echo         db.commit^(^)
+echo         db.refresh^(db_item^)
+echo     if db_item is None:
+echo         raise HTTPException^(status_code=404, detail=^"Item not found^"^)
+echo     return db_item
+echo.
+echo @factura.delete^(^"/delete/{id}^", response_model=Factura, description=^"Delete a factura by Id^"^)
+echo def delete_factura^(id: int, db: Session = Depends^(get_db^)^):
+echo     db_item = db.query^(Facturas^).filter^(Facturas.id_factura == id^).first^(^)
+echo     if db_item:
+echo         db.delete^(db_item^)
+echo         db.commit^(^)
+echo     if db_item is None:
+echo         raise HTTPException^(status_code=404, detail=^"Item not found^"^)
+echo     return db_item
+) > routes/factura.py
+
+
+rem Crear modelo y esquema
+type NUL > models/cliente.py
+rem Implementar modelo
+echo Implementar modelo Clientes
+(
+echo from sqlalchemy import Column, String, Integer
+echo from config.db import Base
+echo from sqlalchemy.orm import relationship
+echo.
+echo class Clientes^(Base^):
+echo     __tablename__ = ^"Clientes^"
+echo.
+echo     id_cliente = Column^(Integer, primary_key=True, nullable=False, unique=True, autoincrement=True, index=True^)
+echo     nombre = Column^(String, nullable=False, index=True^)
+echo     facturas = relationship^(^"Facturas^", back_populates=^"clientes^"^)
+) > models/cliente.py
+
+
+type NUL > schemes/cliente.py
+rem Implementar esquema
+echo Implementar esquema Clientes
+(
+echo from typing import Optional
+echo from pydantic import BaseModel
+echo.
+echo class Cliente^(BaseModel^):
+echo     nombre: str
+) > schemes/cliente.py
+
+
+rem # Crear rutas
+echo # Crear rutas cliente
+type NUL > routes/cliente.py
+(
+echo from fastapi import APIRouter, Depends, HTTPException
+echo from sqlalchemy.orm import Session
+echo.
+echo from models.cliente import Clientes
+echo from schemes.cliente import Cliente
+echo.
+echo from config.db import SessionLocal
+echo.
+echo cliente = APIRouter^(^)
+echo.
+echo def get_db^(^):
+echo     db = SessionLocal^(^)
+echo     try:
+echo         yield db
+echo     finally:
+echo         db.close^(^)
+echo.
+echo @cliente.post^(^"/^", response_model=Cliente, description=^"Create a new cliente^"^)
+echo def create_cliente^(cliente: Cliente, db: Session = Depends^(get_db^)^):
+echo     db_item = Clientes^(nombre=cliente.nombre^)
+echo     db.add^(db_item^)
+echo     db.commit^(^)
+echo     db.refresh^(db_item^)
+echo     return db_item
+echo.
+echo @cliente.get^(^"/all^", response_model=list[Cliente], description=^"Get a list of all clientes^"^)
+echo def read_clientes^(skip: int = 0, limit: int = 10, db: Session = Depends^(get_db^)^):
+echo     return db.query^(Clientes^).offset^(skip^).limit^(limit^).all^(^)
+echo.
+echo @cliente.get^(^"/{id}^", response_model=Cliente, description=^"Get a single cliente by Id^"^)
+echo def read_cliente^(id: int, db: Session = Depends^(get_db^)^):
+echo     db_item = db.query^(Clientes^).filter^(Clientes.id_cliente == id^).first^(^)
+echo     if db_item is None:
+echo         raise HTTPException^(status_code=404, detail=^"Item not found^"^)
+echo     return db_item
+echo.
+echo @cliente.put^(^"/update/{id}^", response_model=Cliente, description=^"Update a cliente by Id^"^)
+echo def update_cliente^(id: int, cliente: Cliente, db: Session = Depends^(get_db^)^):
+echo     db_item = db.query^(Clientes^).filter^(Clientes.id_cliente == id^).first^(^)
+echo     if db_item:
+echo         db_item.nombre = cliente.nombre
+echo         db.commit^(^)
+echo         db.refresh^(db_item^)
+echo     if db_item is None:
+echo         raise HTTPException^(status_code=404, detail=^"Item not found^"^)
+echo     return db_item
+echo.
+echo @cliente.delete^(^"/delete/{id}^", response_model=Cliente, description=^"Delete a cliente by Id^"^)
+echo def delete_cliente^(id: int, db: Session = Depends^(get_db^)^):
+echo     db_item = db.query^(Clientes^).filter^(Clientes.id_cliente == id^).first^(^)
+echo     if db_item:
+echo         db.delete^(db_item^)
+echo         db.commit^(^)
+echo     if db_item is None:
+echo         raise HTTPException^(status_code=404, detail=^"Item not found^"^)
+echo     return db_item
+) > routes/cliente.py
+
+
+rem Crear modelo y esquema
+type NUL > models/tipo.py
+rem Implementar modelo
+echo Implementar modelo Tipos
+(
+echo from sqlalchemy import Column, String, Integer
+echo from config.db import Base
+echo from sqlalchemy.orm import relationship
+echo.
+echo class Tipos^(Base^):
+echo     __tablename__ = ^"Tipos^"
+echo.
+echo     id_tipo = Column^(Integer, primary_key=True, nullable=False, unique=True, autoincrement=True, index=True^)
+echo     nombre = Column^(String, nullable=False, index=True^)
+echo     facturas = relationship^(^"Facturas^", back_populates=^"tipos^"^)
+) > models/tipo.py
+
+
+type NUL > schemes/tipo.py
+rem Implementar esquema
+echo Implementar esquema Tipos
+(
+echo from typing import Optional
+echo from pydantic import BaseModel
+echo.
+echo class Tipo^(BaseModel^):
+echo     nombre: str
+) > schemes/tipo.py
+
+
+rem # Crear rutas
+echo # Crear rutas tipo
+type NUL > routes/tipo.py
+(
+echo from fastapi import APIRouter, Depends, HTTPException
+echo from sqlalchemy.orm import Session
+echo.
+echo from models.tipo import Tipos
+echo from schemes.tipo import Tipo
+echo.
+echo from config.db import SessionLocal
+echo.
+echo tipo = APIRouter^(^)
+echo.
+echo def get_db^(^):
+echo     db = SessionLocal^(^)
+echo     try:
+echo         yield db
+echo     finally:
+echo         db.close^(^)
+echo.
+echo @tipo.post^(^"/^", response_model=Tipo, description=^"Create a new tipo^"^)
+echo def create_tipo^(tipo: Tipo, db: Session = Depends^(get_db^)^):
+echo     db_item = Tipos^(nombre=tipo.nombre^)
+echo     db.add^(db_item^)
+echo     db.commit^(^)
+echo     db.refresh^(db_item^)
+echo     return db_item
+echo.
+echo @tipo.get^(^"/all^", response_model=list[Tipo], description=^"Get a list of all tipos^"^)
+echo def read_tipos^(skip: int = 0, limit: int = 10, db: Session = Depends^(get_db^)^):
+echo     return db.query^(Tipos^).offset^(skip^).limit^(limit^).all^(^)
+echo.
+echo @tipo.get^(^"/{id}^", response_model=Tipo, description=^"Get a single tipo by Id^"^)
+echo def read_tipo^(id: int, db: Session = Depends^(get_db^)^):
+echo     db_item = db.query^(Tipos^).filter^(Tipos.id_tipo == id^).first^(^)
+echo     if db_item is None:
+echo         raise HTTPException^(status_code=404, detail=^"Item not found^"^)
+echo     return db_item
+echo.
+echo @tipo.put^(^"/update/{id}^", response_model=Tipo, description=^"Update a tipo by Id^"^)
+echo def update_tipo^(id: int, tipo: Tipo, db: Session = Depends^(get_db^)^):
+echo     db_item = db.query^(Tipos^).filter^(Tipos.id_tipo == id^).first^(^)
+echo     if db_item:
+echo         db_item.nombre = tipo.nombre
+echo         db.commit^(^)
+echo         db.refresh^(db_item^)
+echo     if db_item is None:
+echo         raise HTTPException^(status_code=404, detail=^"Item not found^"^)
+echo     return db_item
+echo.
+echo @tipo.delete^(^"/delete/{id}^", response_model=Tipo, description=^"Delete a tipo by Id^"^)
+echo def delete_tipo^(id: int, db: Session = Depends^(get_db^)^):
+echo     db_item = db.query^(Tipos^).filter^(Tipos.id_tipo == id^).first^(^)
+echo     if db_item:
+echo         db.delete^(db_item^)
+echo         db.commit^(^)
+echo     if db_item is None:
+echo         raise HTTPException^(status_code=404, detail=^"Item not found^"^)
+echo     return db_item
+) > routes/tipo.py
+
+
+rem Implementar app.py
+echo Implementar app.py
+(
+echo from fastapi import FastAPI
+echo from fastapi.middleware.cors import CORSMiddleware
+echo from routes.factura import factura
+echo from routes.cliente import cliente
+echo from routes.tipo import tipo
+echo from config.db import Base, engine
+echo.
+echo Base.metadata.create_all^(bind=engine^)
+echo.
+echo app = FastAPI^(
+echo     title=^"TIENDA^",
+echo     description=^"REST API using Python, SQLAlchemy and SQLite^",
+echo     version=^"0.0.1^",
+echo     openapi_tags=[
+echo         {
+echo             ^"name^": ^"Facturas^",
+echo             ^"description^": ^"Facturas endpoint^"
+echo         },
+echo         {
+echo             ^"name^": ^"Clientes^",
+echo             ^"description^": ^"Clientes endpoint^"
+echo         },
+echo         {
+echo             ^"name^": ^"Tipos^",
+echo             ^"description^": ^"Tipos endpoint^"
+echo         },
+echo     ]
+echo ^)
+echo.
+echo app.add_middleware^(
+echo     CORSMiddleware,
+echo     allow_origins=[^"*^"],
+echo     allow_credentials=True,
+echo     allow_methods=[^"*^"],
+echo     allow_headers=[^"*^"],
+echo ^)
+echo.
+echo app.include_router^(factura, prefix=^"/facturas^", tags=[^"Facturas^"]^)
+echo app.include_router^(cliente, prefix=^"/clientes^", tags=[^"Clientes^"]^)
+echo app.include_router^(tipo, prefix=^"/tipos^", tags=[^"Tipos^"]^)
+) > app.py
+
+
+rem Crear requirements.txt
+echo Crear requirements.txt
+pip freeze > requirements.txt
+
+
+rem Ejecutando servidor
+echo Ejecutando servidor
+uvicorn app:app --port 4321 --reload
+
