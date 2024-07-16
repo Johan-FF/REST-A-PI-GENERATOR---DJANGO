@@ -42,14 +42,16 @@ def downloadFileNest(request):
             
             director.so = root.find('psm-model').find("so").get("so-name")
             
-            director.build_nest_js_api_rest(root.find('csm-model'), root.find('relational-model'))
+            port = root.find('psm-model').find("technology").get("port")
+            
+            director.build_nest_js_api_rest(root.find('csm-model'), root.find('relational-model'), port)
             
             current_dir = os.path.dirname(os.path.abspath(__file__))
-            print(current_dir)
+            # print(current_dir)
 
             file_name = 'prueba2.'+ ("bat" if director.so=="WINDOWS" else "sh")
             file_path = os.path.join(current_dir, file_name)
-            print(file_path)
+            # print(file_path)
 
             if os.path.exists(file_path):
                 return FileResponse(open(file_path, 'rb'), as_attachment=True, filename=file_name)
@@ -58,7 +60,7 @@ def downloadFileNest(request):
          
             return JsonResponse({'status': 'success', 'message': 'File processed successfully.'})
         except Exception as e:
-            print(e)
+            # print(e)
             return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
     else:
         return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=400)

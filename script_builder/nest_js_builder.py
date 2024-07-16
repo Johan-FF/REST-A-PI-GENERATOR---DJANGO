@@ -98,11 +98,97 @@ class NestApiBuilder(Builder):
         self.script_method.add_cd(entity_name.lower())
         codeModule = self.config_Module( entity_name, attributes, relations, dependencies)
         self.script_method.add_command(codeModule)
+        #Create Controller
+        codeController = self.produce_controller( entity_name, attributes, relations, dependencies)
+        self.script_method.add_command(codeController)
         self.script_method.add_cd("..")
         self.script_method.add_cd("..")
         
-        
-        
+    
+    def produce_controller(self, entity_name, attributes, relations, dependencies):
+        codeController = '@echo off\npowershell -Command ^\n'
+        codeController += f"    \"Set-Content -Path '{entity_name.lower()}.controller.ts' -Value $null;\" ^\n"
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" 'import { Controller, Get, Post, Body, Patch, Param, Delete, Put, UsePipes, ValidationPipe, ParseIntPipe } from ''@nestjs/common'';';\" ^\n"
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" 'import { ApiBody, ApiOperation, ApiResponse, ApiTags } from ''@nestjs/swagger'';';\" ^\n"    
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" 'import { "+entity_name.capitalize()+"Service } from ''./"+entity_name.lower()+".service'';';\" ^\n" 
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" 'import { Create"+entity_name.capitalize()+"Dto } from ''./dto/create-"+entity_name.lower()+".dto'';';\" ^\n"
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" 'import { Update"+entity_name.capitalize()+"Dto } from ''./dto/update-"+entity_name.lower()+".dto'';';\" ^\n"
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" '@Controller(''"+entity_name.lower()+"'')';\" ^\n"  
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" '@ApiTags(''"+entity_name.capitalize()+"'')';\" ^\n"   
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" 'export class "+entity_name.capitalize()+"Controller {';\" ^\n"   
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" 'constructor(private readonly "+entity_name.lower()+"Service: "+entity_name.capitalize()+"Service) { }';\" ^\n" 
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" '@Post()';\" ^\n"   
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" '@UsePipes(new ValidationPipe())';\" ^\n"
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" '@ApiOperation({ summary: ''Create "+entity_name.capitalize()+"'' })';\" ^\n"
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" '@ApiBody({ type: Create"+entity_name.capitalize()+"Dto })';\" ^\n"
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" 'create(@Body() create"+entity_name.capitalize()+"Dto: Create"+entity_name.capitalize()+"Dto) {';\" ^\n"
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" '   return this."+entity_name.lower()+"Service.create(create"+entity_name.capitalize()+"Dto);';\" ^\n" 
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" '}';\" ^\n"  
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" '@Get()';\" ^\n"
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" '@ApiOperation({ summary: ''Find All "+entity_name.capitalize()+"'' })';\" ^\n"  
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" 'findAll() {';\" ^\n" 
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" '   return this."+entity_name.lower()+"Service.findAll();';\" ^\n" 
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" '}';\" ^\n"
+        atpk = ''
+        dt = ''
+        for attribute in attributes:
+            is_pk = attribute.get("is-pk")
+            if is_pk:  
+                atpk = attribute.get("name").lower()
+                data_type = attribute.get("data-type")
+                pk = attribute.get("name").lower()
+                data_type_switch = {
+                            'INT': "number",
+                            'VARCHAR': "string",
+                            'FLOAT': "number"
+                }
+                dt = data_type_switch.get(data_type, "") 
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" '@Get('':"+atpk+"'')';\" ^\n"
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" '@ApiOperation({ summary: ''Find One "+entity_name.capitalize()+"'' })';\" ^\n"
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" '@UsePipes(new ValidationPipe())';\" ^\n"
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" 'findOne(@Param('':"+atpk+"'') id: "+dt+") {';\" ^\n"  
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" '   return this."+entity_name.lower()+"Service.findOne(+id);';\" ^\n"
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" '}';\" ^\n"
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" '@Put('':"+atpk+"'')';\" ^\n"
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" '@UsePipes(new ValidationPipe())';\" ^\n"
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" '@ApiOperation({ summary: ''Update "+entity_name.capitalize()+"'' })';\" ^\n"
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" '@ApiBody({ type: Update"+entity_name.capitalize()+"Dto })';\" ^\n"
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" 'update(@Param('':"+atpk+"'') id: "+dt+", @Body() update"+entity_name.capitalize()+"Dto: Update"+entity_name.capitalize()+"Dto) {';\" ^\n"
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" '   return this."+entity_name.lower()+"Service.update(+id, update"+entity_name.capitalize()+"Dto);';\" ^\n"
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" '}';\" ^\n"
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" '@Delete('':"+atpk+"'')';\" ^\n"
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" '@ApiOperation({ summary: ''Delete "+entity_name.capitalize()+"'' })';\" ^\n"
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" '@UsePipes(new ValidationPipe())';\" ^\n"
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" 'remove(@Param('':"+atpk+"'') id: "+dt+") {';\" ^\n"
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" '   return this."+entity_name.lower()+"Service.remove(+id);';\" ^\n"
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" '}';\" ^\n"
+        codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" '}';\" ^\n"
+        return codeController
+    
+    
+    def main_swagger(self, port):
+        codeMain = '@echo off\npowershell -Command ^\n'
+        codeMain += f"    \"Set-Content -Path 'main.ts' -Value $null;\" ^\n"
+        codeMain += f"    \"Add-Content -Path 'main.ts' -Value"+" 'import { NestFactory, Reflector } from ''@nestjs/core'';';\" ^\n"
+        codeMain += f"    \"Add-Content -Path 'main.ts' -Value"+" 'import { AppModule } from ''./app.module'';';\" ^\n"
+        codeMain += f"    \"Add-Content -Path 'main.ts' -Value"+" 'import { ClassSerializerInterceptor } from ''@nestjs/common'';';\" ^\n"
+        codeMain += f"    \"Add-Content -Path 'main.ts' -Value"+" 'import { SwaggerModule, DocumentBuilder } from ''@nestjs/swagger'';';\" ^\n"
+        codeMain += f"    \"Add-Content -Path 'main.ts' -Value"+" 'async function bootstrap() {';\" ^\n"
+        codeMain += f"    \"Add-Content -Path 'main.ts' -Value"+" '   const app = await NestFactory.create(AppModule);';\" ^\n"
+        codeMain += f"    \"Add-Content -Path 'main.ts' -Value"+" '   const config = new DocumentBuilder()';\" ^\n"
+        codeMain += f"    \"Add-Content -Path 'main.ts' -Value"+f" '  .setTitle(''Api Rest {(self.PROJECT_NAME).capitalize()}'')';\" ^\n"
+        codeMain += f"    \"Add-Content -Path 'main.ts' -Value"+f" '  .setDescription(''Api Rest - {(self.PROJECT_NAME).capitalize()}'')';\" ^\n"
+        codeMain += f"    \"Add-Content -Path 'main.ts' -Value"+f" '  .setVersion(''{self.VERSION}'')';\" ^\n"
+        codeMain += f"    \"Add-Content -Path 'main.ts' -Value"+f" '  .build();';\" ^\n"
+        codeMain += f"    \"Add-Content -Path 'main.ts' -Value"+f" '  const document = SwaggerModule.createDocument(app, config);';\" ^\n"
+        codeMain += f"    \"Add-Content -Path 'main.ts' -Value"+f" '  SwaggerModule.setup(''api'', app, document);';\" ^\n"
+        codeMain += f"    \"Add-Content -Path 'main.ts' -Value"+f" '  app.enableCors();';\" ^\n"
+        codeMain += f"    \"Add-Content -Path 'main.ts' -Value"+f" '  app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));';\" ^\n"
+        codeMain += f"    \"Add-Content -Path 'main.ts' -Value"+f" '  await app.listen({port});';\" ^\n"
+        codeMain += f"    \"Add-Content -Path 'main.ts' -Value"+" '}';\" ^\n"
+        codeMain += f"    \"Add-Content -Path 'main.ts' -Value"+" 'bootstrap();';\" ^\n"
+        return codeMain
+           
         
     def config_Module(self, entity_name, attributes: list[dict], relations, dependencies):
         codeModule = '@echo off\npowershell -Command ^\n'
@@ -118,7 +204,7 @@ class NestApiBuilder(Builder):
         codeModule += f"    \"Add-Content -Path '{entity_name.lower()}.module.ts' -Value"+" '  providers: ["+entity_name.capitalize()+"Service],';\" ^\n"
         codeModule += f"    \"Add-Content -Path '{entity_name.lower()}.module.ts' -Value"+" '  exports: ["+entity_name.capitalize()+"Service],';\" ^\n"
         codeModule += f"    \"Add-Content -Path '{entity_name.lower()}.module.ts' -Value"+" '})';\" ^\n"
-        codeModule += f"    \"Add-Content -Path '{entity_name.lower()}.module.ts' -Value"+" 'export class "+entity_name.capitalize()+"Module { }';\" ^\n"
+        codeModule += f"    \"Add-Content -Path '{entity_name.lower()}.module.ts' -Value"+" 'export class "+entity_name.capitalize()+"Module { }';\"\n"
         return codeModule
    
     def produce_service(self, entity_name, attributes: list[dict], relations, dependencies):
@@ -232,7 +318,8 @@ class NestApiBuilder(Builder):
         codeDto += f"    \"Set-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value $null;\" ^\n"
         codeDto += f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value"+" 'import { IsString, IsNumber, IsNotEmpty, IsPositive, IsBoolean, IsBooleanString, IsDate, IsEmpty, IsOptional, Min} from ''class-validator'';';\" ^\n"
         codeDto += f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value"+" 'import { Transform, TransformFnParams } from ''class-transformer'';';\" ^\n"
-        codeDto += f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value"+" 'import { PartialType } from ''@nestjs/mapped-types'';';\" ^\n"   
+        codeDto += f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value"+" 'import { PartialType } from ''@nestjs/mapped-types'';';\" ^\n"
+        codeDto += f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value"+" 'import { ApiProperty } from ''@nestjs/swagger'';';\" ^\n"   
         for relation in relations:
             codeDto += f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value"+" 'import { "+relation.get("table").capitalize()+" } from ''"+f"src/{relation.get("table").lower()}/entities/{relation.get("table").lower()}.entity"+"'';';\" ^\n"
         codeDto += f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value"+" 'function stringToDate({ value }: TransformFnParams) {return new Date(value);}';\" ^\n"
@@ -247,6 +334,7 @@ class NestApiBuilder(Builder):
             data_type = attribute.get("data-type")
             
             if is_pk == False:
+                codeDto += f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value"+" '    @ApiProperty()';\" ^\n"
                 if nn:
                     codeDto += f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value"+" '    @IsNotEmpty()';\" ^\n"
                 
@@ -374,8 +462,7 @@ class NestApiBuilder(Builder):
     def produce_update(self):
         pass
     
-    def produce_app_file(self, entities):
-        
+    def produce_app_file(self, entities, port):
         self.script_method.add_cd("..")
         self.script_method.add_powerShellCommand(f"Start-Process cmd -ArgumentList '/c npm i @nestjs/typeorm typeorm sqlite3' -NoNewWindow -Wait")
         self.script_method.add_comment("Crear la base de datos con un script de Python incluido en el archivo .bat")
@@ -391,7 +478,7 @@ class NestApiBuilder(Builder):
         # self.script_method.add_command("python create_db.py\ndel create_db.py")
         self.script_method.add_print(".") 
         self.script_method.add_cd('src')
-        #Crenado conexión
+        #Creando conexión
         self.script_method.add_command('@echo off\npowershell -Command ^')
         self.script_method.add_command(f"    \"Set-Content -Path 'app.module.ts' -Value $null;\" ^")
         self.script_method.add_command("    \"Add-Content -Path 'app.module.ts' -Value 'import { Module } from ''@nestjs/common'';';\" ^")
@@ -410,11 +497,15 @@ class NestApiBuilder(Builder):
         self.script_method.add_command(f"    \"Add-Content -Path 'app.module.ts' -Value"+" 'controllers: [AppController],';\" ^")
         self.script_method.add_command(f"    \"Add-Content -Path 'app.module.ts' -Value"+" 'providers: [AppService],';\" ^")
         self.script_method.add_command(f"    \"Add-Content -Path 'app.module.ts' -Value"+" '})';\" ^")
-        self.script_method.add_command(f"    \"Add-Content -Path 'app.module.ts' -Value"+" 'export class AppModule { }';\" ^")
+        self.script_method.add_command(f"    \"Add-Content -Path 'app.module.ts' -Value"+" 'export class AppModule { }';\"")
+        #Config main.ts
+        codeMain = self.main_swagger(port)
+        self.script_method.add_command(codeMain)
         self.script_method.add_cd('..')
         self.script_method.add_powerShellCommand(f"Start-Process cmd -ArgumentList '/c npm i class-validator' -NoNewWindow -Wait")
         self.script_method.add_powerShellCommand(f"Start-Process cmd -ArgumentList '/c npm i class-transformer' -NoNewWindow -Wait")
-        self.script_method.add_powerShellCommand(f"Start-Process cmd -ArgumentList '/c npm i @nestjs/mapped-types' -NoNewWindow -Wait")  
+        self.script_method.add_powerShellCommand(f"Start-Process cmd -ArgumentList '/c npm i @nestjs/mapped-types' -NoNewWindow -Wait") 
+        self.script_method.add_powerShellCommand(f"Start-Process cmd -ArgumentList '/c npm i @nestjs/swagger' -NoNewWindow -Wait")  
         self.script_method.add_powerShellCommand(f"Start-Process cmd -ArgumentList '/c npm run start:dev' -NoNewWindow -Wait") 
         self.script_method.add_pause()
         
