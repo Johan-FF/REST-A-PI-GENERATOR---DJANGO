@@ -245,18 +245,19 @@ class FastAPIBuilder(Builder):
         self.reset()
         return script
 
-    def produce_crud(self, entity_name: str, attributes: list[dict], relations: dict[str, str]) -> None:
+    def produce_crud(self, entity_name: str, attributes: list[dict], relations: dict[str, str], multiplicity_relations: dict[str, str]) -> None:
         entity_name_lower = entity_name.lower()
         self.script_method.add_comment("Crear modelo y esquema")
         self.script_method.add_create_file(f"models/{entity_name_lower}.py")
         
         table_name = remove_special_characters_and_capitalize(entity_name)+"s"
-        self._create_models(entity_name_lower, table_name, relations, attributes)
+        self._create_models(entity_name_lower, table_name, relations, attributes, multiplicity_relations)
 
         self.script_method.add_create_file(f"schemes/{entity_name_lower}.py")
         self._create_schemas(entity_name_lower, table_name, attributes)
 
         self.script_method.add_comment("# Crear rutas")
+        self.script_method.add_print(f"# Crear rutas {entity_name_lower}")
         self.script_method.add_create_file(f"routes/{entity_name_lower}.py")
         
         self._script.add("from fastapi import APIRouter, Depends, HTTPException")
@@ -280,7 +281,7 @@ class FastAPIBuilder(Builder):
         pk_attribute: str = ""
         for attribute in attributes:
             if attribute.get("is-pk"):
-                pk_attribute = attribute.get("name")
+                pk_attribute = attribute.get("name").lower()
         self.produce_create(entity_name_lower, table_name, attributes)
         self.produce_read(entity_name_lower, table_name, pk_attribute)
         self.produce_update(entity_name_lower, table_name, pk_attribute, attributes)
@@ -290,14 +291,15 @@ class FastAPIBuilder(Builder):
         self._script.reset_parts()
         self.script_method.add_line_break()
 
-    def _create_models(self, entity_name_lower: str, table_name: str, relations: dict[str, str], attributes: list[dict]) -> None:
+    def _create_models(self, entity_name_lower: str, table_name: str, relations: dict[str, str], attributes: list[dict], multiplicity_relations: dict[str, str]) -> None:
         self.script_method.add_comment("Implementar modelo")
         self.script_method.add_print(f"Implementar modelo {table_name}")
 
+        has_multiplicitable_table_name = table_name.upper()[:-1] in multiplicity_relations
         empty_relations = len(relations)==0
         self._script.add(f"from sqlalchemy import Column, {types_to_valid_sqlalchemy_types(attributes)}{", ForeignKey" if not empty_relations else ""}")
         self._script.add("from config.db import Base")
-        if not empty_relations:
+        if not empty_relations or has_multiplicitable_table_name:
             self._script.add("from sqlalchemy.orm import relationship")
         self._script.add("\n")
         self._script.add(f"class {table_name}(Base):")
@@ -306,17 +308,32 @@ class FastAPIBuilder(Builder):
         for attribute in attributes:
             attribute_name = attribute.get("name").lower()
 
-            if attribute.get("is-pk"):
-                self._script.add(f"    {attribute_name} = Column({type_to_valid_sqlalchemy_type(attribute.get("data-type"))}, primary_key=True, index=True)")
-                continue
+            attribute_alchemy: str = f"    {attribute_name} = Column({type_to_valid_sqlalchemy_type(attribute.get("data-type"))}, "
 
-            self._script.add(f"    {attribute_name} = Column({type_to_valid_sqlalchemy_type(attribute.get("data-type"))}, index=True)")
-        for attribute_of_table, table in relations.items():
-            fk_attribute = attribute_of_table.lower()
-            fk_table_lower = table.lower()
-            fk_table_name = remove_special_characters_and_capitalize(table)
-            self._script.add(f"    {fk_attribute} = Column(Integer, ForeignKey('{fk_table_name}s.{fk_attribute}'))")
-            self._script.add(f'    {fk_table_lower} = relationship("{fk_table_name}s", back_populates="{table_name.lower()}")')
+            if attribute.get("is-fk"):
+                continue
+            if attribute.get("is-pk"):
+                attribute_alchemy += "primary_key=True, "
+            if attribute.get("is-nn"):
+                attribute_alchemy += "nullable=False, "
+            if attribute.get("is-uq"):
+                attribute_alchemy += "unique=True, "
+            if attribute.get("is-ai"):
+                attribute_alchemy += "autoincrement=True, "
+
+            attribute_alchemy += "index=True)"
+            self._script.add(attribute_alchemy)
+        if empty_relations and has_multiplicitable_table_name:
+            singular_table_name = table_name.upper()[:-1]
+            fk_table_name = remove_special_characters_and_capitalize(multiplicity_relations[singular_table_name])
+            self._script.add(f'    {fk_table_name.lower()}s = relationship("{fk_table_name}s", back_populates="{table_name.lower()}")')
+        else:
+            for attribute_of_table, table in relations.items():
+                fk_attribute = attribute_of_table.lower()
+                fk_table_lower = table.lower()
+                fk_table_name = remove_special_characters_and_capitalize(table)
+                self._script.add(f"    {"fk" + fk_attribute[2:]} = Column(Integer, ForeignKey('{fk_table_name}s.{fk_attribute}'))")
+                self._script.add(f'    {fk_table_lower}s = relationship("{fk_table_name}s", back_populates="{table_name.lower()}")')
         
         self.script_method.add_write_to_file(f"models/{entity_name_lower}.py",self._script)
         self._script.reset_parts()
@@ -334,7 +351,6 @@ class FastAPIBuilder(Builder):
             attribute_name = attribute.get("name").lower()
 
             if attribute.get("is-pk"):
-                self._script.add(f"    {attribute_name}: Optional[{attribute.get("data-type").__name__}]")
                 continue
 
             self._script.add(f"    {attribute_name}: {attribute.get("data-type").__name__}")
@@ -348,6 +364,8 @@ class FastAPIBuilder(Builder):
         self._script.add(f"def create_{entity_name_lower}({entity_name_lower}: {table_name[:-1]}, db: Session = Depends(get_db)):")
         create_str = f"    db_item = {table_name}("
         for attribute in attributes:
+            if attribute.get("is-pk"):
+                continue
             attribute_name = attribute.get("name").lower()
             create_str += f"{attribute_name}={entity_name_lower}.{attribute_name}, "
         self._script.add(create_str[:-2]+")")
@@ -376,6 +394,8 @@ class FastAPIBuilder(Builder):
         self._script.add(f"    db_item = db.query({table_name}).filter({table_name}.{pk_attribute} == id).first()")
         self._script.add("    if db_item:")
         for attribute in attributes:
+            if attribute.get("is-pk"):
+                continue
             attribute_name = attribute.get("name").lower()
             self._script.add(f"        db_item.{attribute_name} = {entity_name_lower}.{attribute_name}")
         self._script.add("        db.commit()")

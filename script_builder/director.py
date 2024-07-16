@@ -46,8 +46,17 @@ class Director:
         self.create_script_file(self._builder.script)
         
 
-    def build_fast_api_api_rest(self, csm_model, relational_model) -> None:
+    def build_fast_api_api_rest(self, relational_model) -> None:
         entities: list[str] = []
+
+        multiplicity_relations: dict[str, str] = {}
+        for table in relational_model.findall("table"):
+            
+            try:
+                for relation in table.find("relations").findall("relation"):
+                    multiplicity_relations[relation.get("table")] = table.get("name")
+            except AttributeError:
+                break
 
         for table in relational_model.findall("table"):
             
@@ -56,16 +65,23 @@ class Director:
                 attributes.append({
                     "name": attribute.get("name"),
                     "is-pk":  True if attribute.get("PK")=="true" else False,
+                    "is-fk":  True if attribute.get("FK")=="true" else False,
+                    "is-nn":  True if attribute.get("NN")=="true" else False,
+                    "is-uq":  True if attribute.get("UQ")=="true" else False,
+                    "is-ai":  True if attribute.get("AI")=="true" else False,
                     "data-type":  get_python_type(attribute.get("data-type")),
                 })
 
             relations: dict[str, str] = {}
-            for relation in table.find("relations").findall("relation"):
-                relations[relation.get("attribute")] = relation.get("table")
+            try:
+                for relation in table.find("relations").findall("relation"):
+                    relations[relation.get("attribute")] = relation.get("table")
+            except AttributeError:
+                pass
 
             table_name: str = table.get("name")
             entities.append(table_name)
-            self._builder.produce_crud(table_name, attributes, relations)
+            self._builder.produce_crud(table_name, attributes, relations, multiplicity_relations)
         
         self._builder.produce_app_file(entities)
 
