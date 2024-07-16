@@ -1,10 +1,12 @@
 @echo off
-rem Nombre del proyecto y del mï¿½dulo
+rem Nombre del proyecto y del módulo
 rem Crear directorio del proyecto
 echo Crear directorio del proyecto
 set "PROJECT_NAME=TIENDA"
 mkdir %PROJECT_NAME%
 cd %PROJECT_NAME%
+echo .
+rem Usar PowerShell para automatizar la creación del proyecto
 rem Crear un entorno virtual
 echo Creando entorno virtual...
 python -m venv venv
@@ -136,8 +138,6 @@ echo     id_factura = Column^(Integer, primary_key=True, nullable=False, unique=
 echo     precio = Column^(Float, nullable=False, index=True^)
 echo     fk_cliente = Column^(Integer, ForeignKey^(^'Clientes.id_cliente^'^)^)
 echo     clientes = relationship^(^"Clientes^", back_populates=^"facturas^"^)
-echo     fk_tipo = Column^(Integer, ForeignKey^(^'Tipos.id_tipo^'^)^)
-echo     tipos = relationship^(^"Tipos^", back_populates=^"facturas^"^)
 ) > models/factura.py
 
 
@@ -151,7 +151,6 @@ echo.
 echo class Factura^(BaseModel^):
 echo     precio: float
 echo     fk_cliente: int
-echo     fk_tipo: int
 ) > schemes/factura.py
 
 
@@ -178,7 +177,7 @@ echo         db.close^(^)
 echo.
 echo @factura.post^(^"/^", response_model=Factura, description=^"Create a new factura^"^)
 echo def create_factura^(factura: Factura, db: Session = Depends^(get_db^)^):
-echo     db_item = Facturas^(precio=factura.precio, fk_cliente=factura.fk_cliente, fk_tipo=factura.fk_tipo^)
+echo     db_item = Facturas^(precio=factura.precio, fk_cliente=factura.fk_cliente^)
 echo     db.add^(db_item^)
 echo     db.commit^(^)
 echo     db.refresh^(db_item^)
@@ -201,7 +200,6 @@ echo     db_item = db.query^(Facturas^).filter^(Facturas.id_factura == id^).firs
 echo     if db_item:
 echo         db_item.precio = factura.precio
 echo         db_item.fk_cliente = factura.fk_cliente
-echo         db_item.fk_tipo = factura.fk_tipo
 echo         db.commit^(^)
 echo         db.refresh^(db_item^)
 echo     if db_item is None:
@@ -225,7 +223,7 @@ type NUL > models/cliente.py
 rem Implementar modelo
 echo Implementar modelo Clientes
 (
-echo from sqlalchemy import Column, String, Integer
+echo from sqlalchemy import Column, Integer, String
 echo from config.db import Base
 echo from sqlalchemy.orm import relationship
 echo.
@@ -313,99 +311,6 @@ echo     return db_item
 ) > routes/cliente.py
 
 
-rem Crear modelo y esquema
-type NUL > models/tipo.py
-rem Implementar modelo
-echo Implementar modelo Tipos
-(
-echo from sqlalchemy import Column, String, Integer
-echo from config.db import Base
-echo from sqlalchemy.orm import relationship
-echo.
-echo class Tipos^(Base^):
-echo     __tablename__ = ^"Tipos^"
-echo.
-echo     id_tipo = Column^(Integer, primary_key=True, nullable=False, unique=True, autoincrement=True, index=True^)
-echo     nombre = Column^(String, nullable=False, index=True^)
-echo     facturas = relationship^(^"Facturas^", back_populates=^"tipos^"^)
-) > models/tipo.py
-
-
-type NUL > schemes/tipo.py
-rem Implementar esquema
-echo Implementar esquema Tipos
-(
-echo from typing import Optional
-echo from pydantic import BaseModel
-echo.
-echo class Tipo^(BaseModel^):
-echo     nombre: str
-) > schemes/tipo.py
-
-
-rem # Crear rutas
-echo # Crear rutas tipo
-type NUL > routes/tipo.py
-(
-echo from fastapi import APIRouter, Depends, HTTPException
-echo from sqlalchemy.orm import Session
-echo.
-echo from models.tipo import Tipos
-echo from schemes.tipo import Tipo
-echo.
-echo from config.db import SessionLocal
-echo.
-echo tipo = APIRouter^(^)
-echo.
-echo def get_db^(^):
-echo     db = SessionLocal^(^)
-echo     try:
-echo         yield db
-echo     finally:
-echo         db.close^(^)
-echo.
-echo @tipo.post^(^"/^", response_model=Tipo, description=^"Create a new tipo^"^)
-echo def create_tipo^(tipo: Tipo, db: Session = Depends^(get_db^)^):
-echo     db_item = Tipos^(nombre=tipo.nombre^)
-echo     db.add^(db_item^)
-echo     db.commit^(^)
-echo     db.refresh^(db_item^)
-echo     return db_item
-echo.
-echo @tipo.get^(^"/all^", response_model=list[Tipo], description=^"Get a list of all tipos^"^)
-echo def read_tipos^(skip: int = 0, limit: int = 10, db: Session = Depends^(get_db^)^):
-echo     return db.query^(Tipos^).offset^(skip^).limit^(limit^).all^(^)
-echo.
-echo @tipo.get^(^"/{id}^", response_model=Tipo, description=^"Get a single tipo by Id^"^)
-echo def read_tipo^(id: int, db: Session = Depends^(get_db^)^):
-echo     db_item = db.query^(Tipos^).filter^(Tipos.id_tipo == id^).first^(^)
-echo     if db_item is None:
-echo         raise HTTPException^(status_code=404, detail=^"Item not found^"^)
-echo     return db_item
-echo.
-echo @tipo.put^(^"/update/{id}^", response_model=Tipo, description=^"Update a tipo by Id^"^)
-echo def update_tipo^(id: int, tipo: Tipo, db: Session = Depends^(get_db^)^):
-echo     db_item = db.query^(Tipos^).filter^(Tipos.id_tipo == id^).first^(^)
-echo     if db_item:
-echo         db_item.nombre = tipo.nombre
-echo         db.commit^(^)
-echo         db.refresh^(db_item^)
-echo     if db_item is None:
-echo         raise HTTPException^(status_code=404, detail=^"Item not found^"^)
-echo     return db_item
-echo.
-echo @tipo.delete^(^"/delete/{id}^", response_model=Tipo, description=^"Delete a tipo by Id^"^)
-echo def delete_tipo^(id: int, db: Session = Depends^(get_db^)^):
-echo     db_item = db.query^(Tipos^).filter^(Tipos.id_tipo == id^).first^(^)
-echo     if db_item:
-echo         db.delete^(db_item^)
-echo         db.commit^(^)
-echo     if db_item is None:
-echo         raise HTTPException^(status_code=404, detail=^"Item not found^"^)
-echo     return db_item
-) > routes/tipo.py
-
-
 rem Implementar app.py
 echo Implementar app.py
 (
@@ -413,7 +318,6 @@ echo from fastapi import FastAPI
 echo from fastapi.middleware.cors import CORSMiddleware
 echo from routes.factura import factura
 echo from routes.cliente import cliente
-echo from routes.tipo import tipo
 echo from config.db import Base, engine
 echo.
 echo Base.metadata.create_all^(bind=engine^)
@@ -431,10 +335,6 @@ echo         {
 echo             ^"name^": ^"Clientes^",
 echo             ^"description^": ^"Clientes endpoint^"
 echo         },
-echo         {
-echo             ^"name^": ^"Tipos^",
-echo             ^"description^": ^"Tipos endpoint^"
-echo         },
 echo     ]
 echo ^)
 echo.
@@ -448,7 +348,6 @@ echo ^)
 echo.
 echo app.include_router^(factura, prefix=^"/facturas^", tags=[^"Facturas^"]^)
 echo app.include_router^(cliente, prefix=^"/clientes^", tags=[^"Clientes^"]^)
-echo app.include_router^(tipo, prefix=^"/tipos^", tags=[^"Tipos^"]^)
 ) > app.py
 
 

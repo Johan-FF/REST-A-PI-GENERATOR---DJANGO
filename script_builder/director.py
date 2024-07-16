@@ -130,7 +130,7 @@ class Director:
             entities.append(table_name)
             self._builder.produce_crud(table_name, attributes, relations, multiplicity_relations)
         
-        self._builder.produce_app_file()
+        self._builder.produce_app_file(entities)
 
         self.create_script_file(self._builder.script)
 
