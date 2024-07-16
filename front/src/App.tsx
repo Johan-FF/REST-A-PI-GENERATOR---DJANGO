@@ -19,34 +19,40 @@ function App() {
         body: `<?xml version="1.0" encoding="UTF-8"?>
 <api-rest-model xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 xsi:noNamespaceSchemaLocation="schema.xsd">
-  <psm-model>
+
+<psm-model>
     <so so-name="${so}"/>
-    <technology tech-name="FASTAPI" version="0.0.0" port="4321"/>
+    <technology tech-name="NEST.JS" version="0.0.0" port="4321"/>
     <project name="TIENDA"/>
   </psm-model>
 
-
-
   <relational-model>
-    <table name="CLIENTE">
+  <table name="FACTURA">
       <attributes>
-        <attribute data-type="INT" name="ID_CLIENTE" PK="true"  FK="true"  NN="true" UQ="false" AI="false"/>
-        <attribute data-type="VARCHAR" name="name" PK="false"  FK="false"  NN="true" UQ="false" AI="false"/>
-        <attribute data-type="BOOL" name="activate" PK="false"  FK="false"  NN="true" UQ="false" AI="false"/>
+        <attribute data-type="INT" name="ID_FACTURA" PK="true" FK="false" NN="true" UQ="true" AI="true" />
+        <attribute data-type="DECIMAL" name="PRECIO" PK="false" FK="false" NN="true" UQ="false" AI="false" />
+        <attribute data-type="INT" name="FK_CLIENTE" PK="false" FK="true" NN="false" UQ="false" AI="false" />
       </attributes>
 
-    </table>
-
-    <table name="FACTURA">
-      <attributes>
-        <attribute data-type="INT" name="ID_FACTURA"  PK="true"  FK="true"  NN="true" UQ="false" AI="false"/>
-        <attribute data-type="DATE" name="FECHA" PK="false"  FK="false"  NN="true" UQ="false" AI="false"/>
-      </attributes>
 
       <relations>
-        <relation multiplicity="1:n" table="CLIENTE" attribute="ID_CLIENTE"/>
+              <relation multiplicity="1:n" table="CLIENTE" attribute="ID_CLIENTE" />
       </relations>
+    
+
     </table>
+    
+<table name="CLIENTE">
+      <attributes>
+        <attribute data-type="INT" name="ID_CLIENTE" PK="true" FK="false" NN="true" UQ="true" AI="true" />
+        <attribute data-type="VARCHAR" name="NOMBRE" PK="false" FK="false" NN="true" UQ="false" AI="false" />
+      </attributes>
+
+
+      
+
+    </table>
+    
   </relational-model>
 </api-rest-model>`,
       });
