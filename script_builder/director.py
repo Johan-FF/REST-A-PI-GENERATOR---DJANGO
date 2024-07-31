@@ -42,7 +42,7 @@ class Director:
     building steps.
     """
 
-    def build_nest_js_api_rest(self, csm_model, relational_model, port) -> None:
+    def build_nest_js_api_rest(self, relational_model, port) -> None:
         entities: list[str] = []
         for table in relational_model.findall("table"):
             
@@ -57,37 +57,32 @@ class Director:
                     "ai": "true" if attribute.get("AI")=="true" else "false",
                     "data-type":  attribute.get("data-type"),
                 })
-            # print(attributes)
+            
             relations: list[dict] = []
-            relations2: list[dict] = []
             try:
                 for relation in table.find("relations").findall("relation"):
-                    
-                    relations.append({
-                                    "table": relation.get("table"),
-                                    "attribute": relation.get("attribute")
-                                })
-            except:
-                print("No hay relation") 
+                    relations.append({"table": relation.get("table"),
+                                      "attribute": relation.get("attribute")})
+            except AttributeError:
+                pass
             
-            for table2 in relational_model.findall("table"):  
-                if table.get("name") != table2.get("name"):
+            multiplicity_relations: list[dict] = []
+            for aux_table in relational_model.findall("table"):  
+                if table.get("name") != aux_table.get("name"):
                     try:
-                        for relation2 in table2.find("relations").findall("relation"):
-                            if relation2.get("table") == table.get("name"):
-                                relations2.append({
-                                    "table": table2.get("name"),
-                                    "multiplicity": relation2.get("multiplicity")
+                        for aux_relation in aux_table.find("relations").findall("relation"):
+                            if aux_relation.get("table") == table.get("name"):
+                                multiplicity_relations.append({
+                                    "table": aux_table.get("name"),
+                                    "multiplicity": aux_relation.get("multiplicity")
                                 })
-                    except:
-                        print("No hay relation")
+                    except AttributeError:
+                        pass
             
-            # print(relations)
             table_name: str = table.get("name")
             entities.append(table_name)
-            self._builder.produce_crud(table_name, attributes, relations, relations2)
-        # print("entidades")
-        # print(entities)
+            self._builder.produce_crud(table_name, attributes, relations, multiplicity_relations)
+
         self._builder.produce_app_file(entities,port)
             
         self.create_script_file(self._builder.script)
@@ -98,7 +93,6 @@ class Director:
 
         multiplicity_relations: dict[str, str] = {}
         for table in relational_model.findall("table"):
-            
             try:
                 for relation in table.find("relations").findall("relation"):
                     multiplicity_relations[relation.get("table")] = table.get("name")
@@ -133,10 +127,6 @@ class Director:
         self._builder.produce_app_file(entities)
 
         self.create_script_file(self._builder.script)
-
-
-    def build_django_api_rest(self) -> None:
-        pass
 
     """
     Creation of .sh file.

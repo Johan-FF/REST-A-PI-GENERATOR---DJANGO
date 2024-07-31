@@ -8,32 +8,37 @@ from script_builder.fast_api_builder import FastAPIBuilder
 from script_builder.nest_js_builder import NestApiBuilder
 
 @csrf_exempt
-def download_file(request):
-    director = Director()
+def download_fast_api(request):
+    if request.method == 'POST':
+        try:
+            director = Director()
 
-    tree = ET.ElementTree(ET.fromstring(request.body))
-    root = tree.getroot()
+            tree = ET.ElementTree(ET.fromstring(request.body))
+            root = tree.getroot()
 
-    director.builder = FastAPIBuilder(root.find('psm-model'))
+            director.builder = FastAPIBuilder(root.find('psm-model'))
 
-    director.so = root.find('psm-model').find("so").get("so-name")
-    director.build_fast_api_api_rest(root.find('relational-model'))
+            director.so = root.find('psm-model').find("so").get("so-name")
+            director.build_fast_api_api_rest(root.find('relational-model'))
 
-    current_dir = os.path.dirname(os.path.abspath(__file__))
+            current_dir = os.path.dirname(os.path.abspath(__file__))
 
-    file_name = 'prueba2.'+ ("bat" if director.so=="WINDOWS" else "sh")
-    file_path = os.path.join(current_dir, file_name)
+            file_name = 'prueba2.'+ ("bat" if director.so=="WINDOWS" else "sh")
+            file_path = os.path.join(current_dir, file_name)
 
-    if os.path.exists(file_path):
-        return FileResponse(open(file_path, 'rb'), as_attachment=True, filename=file_name)
+            if os.path.exists(file_path):
+                return FileResponse(open(file_path, 'rb'), as_attachment=True, filename=file_name)
+            raise Http404("File not found")
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
     else:
-        raise Http404("File not found")
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=400)
     
 @csrf_exempt
 def downloadFileNest(request):
-    director = Director()
     if request.method == 'POST':
         try:
+            director = Director()
             
             tree = ET.ElementTree(ET.fromstring(request.body))
             root = tree.getroot()
@@ -44,23 +49,17 @@ def downloadFileNest(request):
             
             port = root.find('psm-model').find("technology").get("port")
             
-            director.build_nest_js_api_rest(root.find('csm-model'), root.find('relational-model'), port)
+            director.build_nest_js_api_rest(root.find('relational-model'), port)
             
             current_dir = os.path.dirname(os.path.abspath(__file__))
-            # print(current_dir)
 
             file_name = 'prueba2.'+ ("bat" if director.so=="WINDOWS" else "sh")
             file_path = os.path.join(current_dir, file_name)
-            # print(file_path)
 
             if os.path.exists(file_path):
                 return FileResponse(open(file_path, 'rb'), as_attachment=True, filename=file_name)
-            else:
-                raise Http404("File not found")
-         
-            return JsonResponse({'status': 'success', 'message': 'File processed successfully.'})
+            raise Http404("File not found")
         except Exception as e:
-            # print(e)
             return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
     else:
         return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=400)

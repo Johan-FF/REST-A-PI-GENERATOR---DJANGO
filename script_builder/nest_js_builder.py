@@ -2,9 +2,6 @@ from .script_method.windows_script import WindowsCreator
 from .script_method.linux_script import LinuxCreator
 from .builder import Builder
 from script_builder.concrete_script import ConcreteScript
-from .utils.data_types import types_to_valid_sqlalchemy_types, \
-                            remove_special_characters_and_capitalize, \
-                            type_to_valid_sqlalchemy_type
 
 class NestApiBuilder(Builder):
     """
@@ -46,7 +43,7 @@ class NestApiBuilder(Builder):
         self.script_method.add_powerShellCommand("Start-Process cmd -ArgumentList '/c nest new %PROJECT_NAME%','--package-manager npm' -NoNewWindow -Wait")
         self.script_method.add_comment("Entrando src...")
         self.script_method.add_cd("tienda\src")
-                  
+
     @property
     def script(self) -> ConcreteScript:
         """
@@ -105,7 +102,7 @@ class NestApiBuilder(Builder):
         self.script_method.add_cd("..")
         
     
-    def produce_controller(self, entity_name, attributes, relations, dependencies):
+    def produce_controller(self, entity_name, attributes):
         codeController = '@echo off\npowershell -Command ^\n'
         codeController += f"    \"Set-Content -Path '{entity_name.lower()}.controller.ts' -Value $null;\" ^\n"
         codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" 'import { Controller, Get, Post, Body, Patch, Param, Delete, Put, UsePipes, ValidationPipe, ParseIntPipe } from ''@nestjs/common'';';\" ^\n"
@@ -165,7 +162,6 @@ class NestApiBuilder(Builder):
         codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" '}';\" ^\n"
         return codeController
     
-    
     def main_swagger(self, port):
         codeMain = '@echo off\npowershell -Command ^\n'
         codeMain += f"    \"Set-Content -Path 'main.ts' -Value $null;\" ^\n"
@@ -188,9 +184,8 @@ class NestApiBuilder(Builder):
         codeMain += f"    \"Add-Content -Path 'main.ts' -Value"+" '}';\" ^\n"
         codeMain += f"    \"Add-Content -Path 'main.ts' -Value"+" 'bootstrap();';\" ^\n"
         return codeMain
-           
-        
-    def config_Module(self, entity_name, attributes: list[dict], relations, dependencies):
+
+    def config_Module(self, entity_name):
         codeModule = '@echo off\npowershell -Command ^\n'
         codeModule += f"    \"Set-Content -Path '{entity_name.lower()}.module.ts' -Value $null;\" ^\n"
         codeModule += f"    \"Add-Content -Path '{entity_name.lower()}.module.ts' -Value"+" 'import { Module } from ''@nestjs/common'';';\" ^\n"
@@ -207,7 +202,7 @@ class NestApiBuilder(Builder):
         codeModule += f"    \"Add-Content -Path '{entity_name.lower()}.module.ts' -Value"+" 'export class "+entity_name.capitalize()+"Module { }';\"\n"
         return codeModule
    
-    def produce_service(self, entity_name, attributes: list[dict], relations, dependencies):
+    def produce_service(self, entity_name, attributes: list[dict], relations):
         codeService = '@echo off\npowershell -Command ^\n'
         codeService += f"    \"Set-Content -Path '{entity_name.lower()}.service.ts' -Value $null;\" ^\n"
         codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" 'import { Injectable, NotFoundException } from ''@nestjs/common'';';\" ^\n"
@@ -309,11 +304,7 @@ class NestApiBuilder(Builder):
         
         return codeService  
         
-        
- 
- 
-        
-    def produce_dto(self, entity_name, attributes: list[dict], relations, dependencies):
+    def produce_dto(self, entity_name, attributes: list[dict], relations):
         codeDto = '@echo off\npowershell -Command ^\n'
         codeDto += f"    \"Set-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value $null;\" ^\n"
         codeDto += f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value"+" 'import { IsString, IsNumber, IsNotEmpty, IsPositive, IsBoolean, IsBooleanString, IsDate, IsEmpty, IsOptional, Min} from ''class-validator'';';\" ^\n"
@@ -371,8 +362,6 @@ class NestApiBuilder(Builder):
         codeDto += f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value"+" '}';\" ^\n"
             
         return codeDto
-        
- 
       
     def produce_entity(self, entity_name, attributes: list[dict], relations, dependencies):
         codeEntity = '@echo off\npowershell -Command ^\n'
@@ -453,29 +442,12 @@ class NestApiBuilder(Builder):
             codeEntity += f"    \"Add-Content -Path '{entity_name_lower}.entity.ts' -Value '    {dependence.get("table").lower()}: {dependence.get("table").capitalize()}[];';\" ^\n"
         codeEntity += f"    \"Add-Content -Path '{entity_name.lower()}.entity.ts'"+" -Value '}'\"\n"
         return codeEntity
-        
-    def produce_delete(self):
-        pass 
-    
-    def produce_read(self):
-        pass
-    def produce_update(self):
-        pass
     
     def produce_app_file(self, entities, port):
         self.script_method.add_cd("..")
         self.script_method.add_powerShellCommand(f"Start-Process cmd -ArgumentList '/c npm i @nestjs/typeorm typeorm sqlite3' -NoNewWindow -Wait")
         self.script_method.add_comment("Crear la base de datos con un script de Python incluido en el archivo .bat")
         self.script_method.add_print("Creando la base de datos SQLite...")
-        # self.script_method.add_print2(". > create_db.py")
-        # self.script_method.add_print("import sqlite3 >> create_db.py")
-        # self.script_method.add_print2(". >> create_db.py")
-        # self.script_method.add_print("# Conectar o crear la base de datos >> create_db.py")
-        # self.script_method.add_print("conn = sqlite3.connect('database.db') >> create_db.py")
-        # self.script_method.add_print2(". >> create_db.py")
-        # self.script_method.add_print("# Cerrar la conexion >> create_db.py")
-        # self.script_method.add_print("conn.close() >> create_db.py")
-        # self.script_method.add_command("python create_db.py\ndel create_db.py")
         self.script_method.add_print(".") 
         self.script_method.add_cd('src')
         #Creando conexión
@@ -508,11 +480,3 @@ class NestApiBuilder(Builder):
         self.script_method.add_powerShellCommand(f"Start-Process cmd -ArgumentList '/c npm i @nestjs/swagger' -NoNewWindow -Wait")  
         self.script_method.add_powerShellCommand(f"Start-Process cmd -ArgumentList '/c npm run start:dev' -NoNewWindow -Wait") 
         self.script_method.add_pause()
-        
-    
-
-    
-        
-        
-        
-        
