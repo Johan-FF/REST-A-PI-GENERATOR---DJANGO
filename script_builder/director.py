@@ -42,7 +42,7 @@ class Director:
     building steps.
     """
 
-    def build_nest_js_api_rest(self, relational_model, port) -> None:
+    def build_nest_js_api_rest(self, relational_model) -> None:
         entities: list[str] = []
         for table in relational_model.findall("table"):
             
@@ -83,7 +83,7 @@ class Director:
             entities.append(table_name)
             self._builder.produce_crud(table_name, attributes, relations, multiplicity_relations)
 
-        self._builder.produce_app_file(entities,port)
+        self._builder.produce_app_file(entities)
             
         self.create_script_file(self._builder.script)
         

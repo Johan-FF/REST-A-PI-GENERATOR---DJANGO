@@ -35,7 +35,7 @@ def download_fast_api(request):
         return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=400)
     
 @csrf_exempt
-def downloadFileNest(request):
+def download_file_nest(request):
     if request.method == 'POST':
         try:
             director = Director()
@@ -47,9 +47,7 @@ def downloadFileNest(request):
             
             director.so = root.find('psm-model').find("so").get("so-name")
             
-            port = root.find('psm-model').find("technology").get("port")
-            
-            director.build_nest_js_api_rest(root.find('relational-model'), port)
+            director.build_nest_js_api_rest(root.find('relational-model'))
             
             current_dir = os.path.dirname(os.path.abspath(__file__))
 

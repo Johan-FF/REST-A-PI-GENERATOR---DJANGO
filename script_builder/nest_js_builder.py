@@ -443,33 +443,40 @@ class NestApiBuilder(Builder):
         codeEntity += f"    \"Add-Content -Path '{entity_name.lower()}.entity.ts'"+" -Value '}'\"\n"
         return codeEntity
     
-    def produce_app_file(self, entities, port):
-        self.script_method.add_cd("..")
-        self.script_method.add_powerShellCommand(f"Start-Process cmd -ArgumentList '/c npm i @nestjs/typeorm typeorm sqlite3' -NoNewWindow -Wait")
+    def produce_app_file(self, entities):
+        # self.script_method.add_cd("..")
+        self.script_method.add_command(f"npm i @nestjs/typeorm typeorm sqlite3")
         self.script_method.add_comment("Crear la base de datos con un script de Python incluido en el archivo .bat")
         self.script_method.add_print("Creando la base de datos SQLite...")
-        self.script_method.add_print(".") 
-        self.script_method.add_cd('src')
+        # self.script_method.add_cd('src')
+        
         #Creando conexión
-        self.script_method.add_command('@echo off\npowershell -Command ^')
-        self.script_method.add_command(f"    \"Set-Content -Path 'app.module.ts' -Value $null;\" ^")
-        self.script_method.add_command("    \"Add-Content -Path 'app.module.ts' -Value 'import { Module } from ''@nestjs/common'';';\" ^")
-        self.script_method.add_command("    \"Add-Content -Path 'app.module.ts' -Value 'import { AppController } from ''./app.controller'';';\" ^")
-        self.script_method.add_command("    \"Add-Content -Path 'app.module.ts' -Value 'import { AppService } from ''./app.service'';';\" ^")
-        self.script_method.add_command("    \"Add-Content -Path 'app.module.ts' -Value 'import { TypeOrmModule } from ''@nestjs/typeorm'';';\" ^")
+        # self._script.add(f"    \"Set-Content -Path 'app.module.ts' -Value $null;\" ^")
+        self._script.add("import { Module } from '@nestjs/common';")
+        self._script.add("import { AppController } from './app.controller';")
+        self._script.add("import { AppService } from './app.service';")
+        self._script.add("import { TypeOrmModule } from '@nestjs/typeorm';")
+
         listentities = ''
         listModules = ''
         for entity in entities:
             listentities += f"{entity.capitalize()},"
             listModules += f"{entity.capitalize()}Module,"
-            self.script_method.add_command(f"    \"Add-Content -Path 'app.module.ts' -Value"+" 'import { "+entity.capitalize()+"Module } from ''"+f"./{entity.lower()}/{entity.lower()}.module"+"'';';\" ^")
-            self.script_method.add_command(f"    \"Add-Content -Path 'app.module.ts' -Value"+" 'import { "+entity.capitalize()+" } from ''"+f"./{entity.lower()}/entities/{entity.lower()}.entity"+"'';';\" ^")
-        self.script_method.add_command(f"    \"Add-Content -Path 'app.module.ts' -Value"+" '@Module({';\" ^")
-        self.script_method.add_command(f"    \"Add-Content -Path 'app.module.ts' -Value"+" 'imports: [TypeOrmModule.forRoot({type: ''sqlite'', database: ''database.sqlite'',entities: ["+listentities+"], synchronize: true, }), TypeOrmModule.forFeature(["+listentities+"]), "+listModules+"],';\" ^")
-        self.script_method.add_command(f"    \"Add-Content -Path 'app.module.ts' -Value"+" 'controllers: [AppController],';\" ^")
-        self.script_method.add_command(f"    \"Add-Content -Path 'app.module.ts' -Value"+" 'providers: [AppService],';\" ^")
-        self.script_method.add_command(f"    \"Add-Content -Path 'app.module.ts' -Value"+" '})';\" ^")
-        self.script_method.add_command(f"    \"Add-Content -Path 'app.module.ts' -Value"+" 'export class AppModule { }';\"")
+            self._script.add(f"import {entity.capitalize()}Module from './{entity.lower()}/{entity.lower()}.module';")
+            self._script.add(f"import {entity.capitalize()} from './{entity.lower()}/entities/{entity.lower()}.entity';")
+        self._script.add("\n")
+        self._script.add(f"@Module({"{"}")
+        self._script.add(f"    imports: [TypeOrmModule.forRoot({type: ''sqlite'', database: ''database.sqlite'',entities: ["+listentities+"], synchronize: true, }), TypeOrmModule.forFeature(["+listentities+"]), "+listModules+"],';\" ^")
+        self._script.add("        type: 'sqlite',")
+        self._script.add("        database: 'database.sqlite',")
+        self._script.add(f"        entities: [{listentities}],")
+        self._script.add(f"        synchronize: true")
+        self._script.add(f"    {"}"}),")
+        self._script.add(f"    {"}"}),")
+        self._script.add(f"controllers: [AppController],';\" ^")
+        self._script.add(f"providers: [AppService],';\" ^")
+        self._script.add(f"})';\" ^")
+        self._script.add(f"export class AppModule { }';\"")
         #Config main.ts
         codeMain = self.main_swagger(port)
         self.script_method.add_command(codeMain)
