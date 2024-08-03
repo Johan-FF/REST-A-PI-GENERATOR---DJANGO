@@ -161,29 +161,6 @@ class NestApiBuilder(Builder):
         codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" '}';\" ^\n"
         codeController += f"    \"Add-Content -Path '{entity_name.lower()}.controller.ts' -Value"+" '}';\" ^\n"
         return codeController
-    
-    def main_swagger(self, port):
-        codeMain = '@echo off\npowershell -Command ^\n'
-        codeMain += f"    \"Set-Content -Path 'main.ts' -Value $null;\" ^\n"
-        codeMain += f"    \"Add-Content -Path 'main.ts' -Value"+" 'import { NestFactory, Reflector } from ''@nestjs/core'';';\" ^\n"
-        codeMain += f"    \"Add-Content -Path 'main.ts' -Value"+" 'import { AppModule } from ''./app.module'';';\" ^\n"
-        codeMain += f"    \"Add-Content -Path 'main.ts' -Value"+" 'import { ClassSerializerInterceptor } from ''@nestjs/common'';';\" ^\n"
-        codeMain += f"    \"Add-Content -Path 'main.ts' -Value"+" 'import { SwaggerModule, DocumentBuilder } from ''@nestjs/swagger'';';\" ^\n"
-        codeMain += f"    \"Add-Content -Path 'main.ts' -Value"+" 'async function bootstrap() {';\" ^\n"
-        codeMain += f"    \"Add-Content -Path 'main.ts' -Value"+" '   const app = await NestFactory.create(AppModule);';\" ^\n"
-        codeMain += f"    \"Add-Content -Path 'main.ts' -Value"+" '   const config = new DocumentBuilder()';\" ^\n"
-        codeMain += f"    \"Add-Content -Path 'main.ts' -Value"+f" '  .setTitle(''Api Rest {(self.PROJECT_NAME).capitalize()}'')';\" ^\n"
-        codeMain += f"    \"Add-Content -Path 'main.ts' -Value"+f" '  .setDescription(''Api Rest - {(self.PROJECT_NAME).capitalize()}'')';\" ^\n"
-        codeMain += f"    \"Add-Content -Path 'main.ts' -Value"+f" '  .setVersion(''{self.VERSION}'')';\" ^\n"
-        codeMain += f"    \"Add-Content -Path 'main.ts' -Value"+f" '  .build();';\" ^\n"
-        codeMain += f"    \"Add-Content -Path 'main.ts' -Value"+f" '  const document = SwaggerModule.createDocument(app, config);';\" ^\n"
-        codeMain += f"    \"Add-Content -Path 'main.ts' -Value"+f" '  SwaggerModule.setup(''api'', app, document);';\" ^\n"
-        codeMain += f"    \"Add-Content -Path 'main.ts' -Value"+f" '  app.enableCors();';\" ^\n"
-        codeMain += f"    \"Add-Content -Path 'main.ts' -Value"+f" '  app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));';\" ^\n"
-        codeMain += f"    \"Add-Content -Path 'main.ts' -Value"+f" '  await app.listen({port});';\" ^\n"
-        codeMain += f"    \"Add-Content -Path 'main.ts' -Value"+" '}';\" ^\n"
-        codeMain += f"    \"Add-Content -Path 'main.ts' -Value"+" 'bootstrap();';\" ^\n"
-        return codeMain
 
     def config_Module(self, entity_name):
         codeModule = '@echo off\npowershell -Command ^\n'
@@ -451,11 +428,12 @@ class NestApiBuilder(Builder):
         # self.script_method.add_cd('src')
         
         #Creando conexión
-        # self._script.add(f"    \"Set-Content -Path 'app.module.ts' -Value $null;\" ^")
         self._script.add("import { Module } from '@nestjs/common';")
+        self._script.add("import { TypeOrmModule } from '@nestjs/typeorm';")
+        self._script.add("\n")
         self._script.add("import { AppController } from './app.controller';")
         self._script.add("import { AppService } from './app.service';")
-        self._script.add("import { TypeOrmModule } from '@nestjs/typeorm';")
+        self._script.add("\n")
 
         listentities = ''
         listModules = ''
@@ -464,26 +442,66 @@ class NestApiBuilder(Builder):
             listModules += f"{entity.capitalize()}Module,"
             self._script.add(f"import {entity.capitalize()}Module from './{entity.lower()}/{entity.lower()}.module';")
             self._script.add(f"import {entity.capitalize()} from './{entity.lower()}/entities/{entity.lower()}.entity';")
+            self._script.add("\n")
+        
+        self._script.add("@Module({")
+        self._script.add("    imports: [")
+        self._script.add("        TypeOrmModule.forRoot({")
+        self._script.add("            type: 'sqlite',")
+        self._script.add("            database: 'database.sqlite',")
+        self._script.add(f"            entities: [{listentities}],")
+        self._script.add("            synchronize: true")
+        self._script.add("        }),")
+        self._script.add(f"        TypeOrmModule.forFeature([{listentities}]),")
+        self._script.add(f"        {listentities}")
+        self._script.add("    ],")
+        self._script.add(f"    controllers: [AppController],")
+        self._script.add(f"    providers: [AppService],")
+        self._script.add("})")
+        self._script.add("export class AppModule { }")
         self._script.add("\n")
-        self._script.add(f"@Module({"{"}")
-        self._script.add(f"    imports: [TypeOrmModule.forRoot({type: ''sqlite'', database: ''database.sqlite'',entities: ["+listentities+"], synchronize: true, }), TypeOrmModule.forFeature(["+listentities+"]), "+listModules+"],';\" ^")
-        self._script.add("        type: 'sqlite',")
-        self._script.add("        database: 'database.sqlite',")
-        self._script.add(f"        entities: [{listentities}],")
-        self._script.add(f"        synchronize: true")
-        self._script.add(f"    {"}"}),")
-        self._script.add(f"    {"}"}),")
-        self._script.add(f"controllers: [AppController],';\" ^")
-        self._script.add(f"providers: [AppService],';\" ^")
-        self._script.add(f"})';\" ^")
-        self._script.add(f"export class AppModule { }';\"")
+        self.script_method.add_write_to_file("src/app.module.ts", self._script)
+        self._script.reset_parts()
+        self.script_method.add_line_break()
+
         #Config main.ts
-        codeMain = self.main_swagger(port)
-        self.script_method.add_command(codeMain)
-        self.script_method.add_cd('..')
-        self.script_method.add_powerShellCommand(f"Start-Process cmd -ArgumentList '/c npm i class-validator' -NoNewWindow -Wait")
-        self.script_method.add_powerShellCommand(f"Start-Process cmd -ArgumentList '/c npm i class-transformer' -NoNewWindow -Wait")
-        self.script_method.add_powerShellCommand(f"Start-Process cmd -ArgumentList '/c npm i @nestjs/mapped-types' -NoNewWindow -Wait") 
-        self.script_method.add_powerShellCommand(f"Start-Process cmd -ArgumentList '/c npm i @nestjs/swagger' -NoNewWindow -Wait")  
-        self.script_method.add_powerShellCommand(f"Start-Process cmd -ArgumentList '/c npm run start:dev' -NoNewWindow -Wait") 
-        self.script_method.add_pause()
+        self.produce_main_swagger()
+
+        #Execute
+        self.script_method.add_command("npm i class-validator")
+        self.script_method.add_command("npm i class-transformer")
+        self.script_method.add_command("npm i @nestjs/mapped-types") 
+        self.script_method.add_command("npm i @nestjs/swagger")  
+        self.script_method.add_command("npm run start:dev") 
+
+    def produce_main_swagger(self) -> None:
+        self._script.add("import { NestFactory, Reflector } from '@nestjs/core';")
+        self._script.add("import { ClassSerializerInterceptor } from '@nestjs/common';")
+        self._script.add("import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';")
+        self._script.add("\n")
+        self._script.add("import { AppModule } from './app.module';")
+        self._script.add("\n")
+        self._script.add("async function bootstrap() {")
+        self._script.add("    const app = await NestFactory.create(AppModule);")
+        self._script.add("\n")
+        self._script.add("    const config = new DocumentBuilder()")
+        self._script.add(f"        .setTitle('Api Rest {(self.PROJECT_NAME).capitalize()}')")
+        self._script.add(f"        .setDescription('Api Rest - {(self.PROJECT_NAME).capitalize()}')")
+        self._script.add(f"        .setVersion('0.0.1')")
+        self._script.add(f"        .build();")
+        self._script.add("\n")
+        self._script.add(f"    const document = SwaggerModule.createDocument(app, config);")
+        self._script.add("\n")
+        self._script.add(f"    SwaggerModule.setup('api', app, document);")
+        self._script.add("\n")
+        self._script.add(f"    app.enableCors();")
+        self._script.add(f"    app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));")
+        self._script.add(f"    await app.listen({NestApiBuilder.EXECUTE_PORT});")
+        self._script.add("}")
+        self._script.add("\n")
+        self._script.add(" 'bootstrap();")
+        self._script.add("\n")
+        
+        self.script_method.add_write_to_file("src/main.ts", self._script)
+        self._script.reset_parts()
+        self.script_method.add_line_break()
