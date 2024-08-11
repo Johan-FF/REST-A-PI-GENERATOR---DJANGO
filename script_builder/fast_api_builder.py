@@ -2,7 +2,7 @@ from .script_method.windows_script import WindowsCreator
 from .script_method.linux_script import LinuxCreator
 from .builder import Builder
 from script_builder.concrete_script import ConcreteScript
-from .utils.data_types import types_to_valid_sqlalchemy_types, \
+from .utils.data_types_fast_api import types_to_valid_sqlalchemy_types, \
                             remove_special_characters_and_capitalize, \
                             type_to_valid_sqlalchemy_type
 

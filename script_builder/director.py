@@ -1,6 +1,6 @@
 import os
 
-from .utils.data_types import get_python_type
+from .utils.data_types_fast_api import get_python_type
 from .builder import Builder
 from .concrete_script import ConcreteScript
 

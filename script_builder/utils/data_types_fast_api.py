@@ -1,14 +1,14 @@
 import re
 
+type_mapping = {
+    'BOOL': bool,
+    'INT': int,
+    'DECIMAL': float,
+    'VARCHAR': str,
+    'BINARY': bytes
+}
+
 def get_python_type(data_type_str: str) -> type:
-    type_mapping = {
-        'BOOL': bool,
-        'INT': int,
-        'DECIMAL': float,
-        'VARCHAR': str,
-        'BINARY': bytes
-    }
-    
     return type_mapping.get(data_type_str, None)
 
 sqlalchemy_data_types = {
@@ -30,7 +30,6 @@ def types_to_valid_sqlalchemy_types(attributes: list):
 
 def type_to_valid_sqlalchemy_type(type: type):
     return sqlalchemy_data_types[type]
-    
 
 def remove_special_characters_and_capitalize(string: str):
     words = re.findall(r'[a-zA-Z]+', string)

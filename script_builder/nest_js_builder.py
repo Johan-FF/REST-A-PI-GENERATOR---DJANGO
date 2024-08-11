@@ -1,3 +1,4 @@
+from .utils.data_types_nest_js import get_javascript_type, get_validator_type, type_to_valid_type_orm_type
 from .script_method.windows_script import WindowsCreator
 from .script_method.linux_script import LinuxCreator
 from .builder import Builder
@@ -64,33 +65,28 @@ class NestApiBuilder(Builder):
         self.reset()
         return script
     
-    def produce_create(self):
-        pass
-
-    def produce_crud(self, entity_name, attributes: list[dict], relations, dependencies):
+    def produce_crud(self, entity_name: str, attributes: list[dict], relations: list[dict], dependencies: list[dict]):
         self.script_method.add_comment(f"Creando modulo {entity_name.lower()}...")
         self.script_method.add_print(f"Creando modulo {entity_name.lower()}...")
-        self.script_method.add_powerShellCommand(f"Start-Process cmd -ArgumentList '/c nest generate resource {entity_name.lower()} ' -NoNewWindow -Wait")
-        self.script_method.add_cd(entity_name.lower())
-        self.script_method.add_cd("entities")
+        self.script_method.add_command(f"nest generate resource {entity_name.lower()}")
         #Create entity
-        codeEntity = self.produce_entity(entity_name, attributes, relations, dependencies)
-        self.script_method.add_command(codeEntity)
-        self.script_method.add_cd("..")
-        self.script_method.add_cd("..")
+        # self.script_method.add_cd(entity_name.lower())
+        # self.script_method.add_cd("entities")
+        self.produce_entity(entity_name, attributes, relations, dependencies)
+        # self.script_method.add_cd("..")
+        # self.script_method.add_cd("..")
         #Create dto
-        self.script_method.add_cd(entity_name.lower())
-        self.script_method.add_cd("dto")
-        codeDto = self.produce_dto(entity_name, attributes, relations, dependencies)
-        self.script_method.add_command(codeDto)
-        self.script_method.add_cd("..")
-        self.script_method.add_cd("..")
+        # self.script_method.add_cd(entity_name.lower())
+        # self.script_method.add_cd("dto")
+        self.produce_dto(entity_name, attributes, relations)
+        # self.script_method.add_cd("..")
+        # self.script_method.add_cd("..")
         #Create service
-        self.script_method.add_cd(entity_name.lower())
-        codeService = self.produce_service(entity_name, attributes, relations, dependencies)
-        self.script_method.add_command(codeService)
-        self.script_method.add_cd("..")
-        self.script_method.add_cd("..")
+        # self.script_method.add_cd(entity_name.lower())
+        self.produce_service(entity_name, attributes, relations, dependencies)
+        # self.script_method.add_command(codeService)
+        # self.script_method.add_cd("..")
+        # self.script_method.add_cd("..")
         #Config modules
         self.script_method.add_cd(entity_name.lower())
         codeModule = self.config_Module( entity_name, attributes, relations, dependencies)
@@ -101,7 +97,231 @@ class NestApiBuilder(Builder):
         self.script_method.add_cd("..")
         self.script_method.add_cd("..")
         
-    
+    def produce_entity(self, entity_name: str, attributes: list[dict], relations: list[dict], dependencies: list[dict]) -> None:
+        self._script.add("import { Column, Entity, PrimaryGeneratedColumn, ManyToOne, OneToMany, JoinColumn} from 'typeorm';")
+        aux_path: str = ""
+        for dependence in dependencies:
+            aux_path = f"src/{dependence.get("table").lower()}/entities/{dependence.get("table").lower()}.entity"
+            self._script.add(f"import {"{"}{dependence.get("table").capitalize()}{"}"} from '{aux_path}';")
+        for relation in relations:
+            aux_path = f"src/{relation.get("table").lower()}/entities/{relation.get("table").lower()}.entity"
+            self._script.add(f"import {"{"} {relation.get("table").capitalize()} {"}"} from '{aux_path}';")
+        self._script.add("\n")
+
+        self._script.add("@Entity();")
+        self._script.add(f"export class {entity_name.capitalize()} {"{"}")
+        for attribute in attributes:
+            attribute_name = attribute.get("name").lower()
+            is_pk = attribute.get("is-pk")
+            nn = attribute.get("nn")
+            uq = attribute.get("uq")
+            data_type = attribute.get("data-type")
+            if is_pk:
+                self._script.add("    @PrimaryGeneratedColumn()")        
+            else:
+                self._script.add(f"    @Column({"{"} type: '{type_to_valid_type_orm_type(data_type)}', unique: {uq}, nullable: {nn}{"}"})")
+            self._script.add(f"    {attribute_name}: {get_javascript_type(data_type)};")
+                
+        entity_name_lower = entity_name.lower()
+        aux_table: str = ""
+        aux_table_lower: str = ""
+        aux_table_capitalize: str = ""
+        aux_attribute_relation: str = ""
+        
+        for relation in relations:
+            aux_table = relation.get("table")
+            aux_table_lower = aux_table.lower()
+            aux_table_capitalize = aux_table.capitalize()
+            self._script.add(f"    @ManyToOne(() => {aux_table_capitalize}, ({aux_table_lower}) => {aux_table_lower}.{entity_name_lower}, {"{"}")
+            self._script.add("        nullable: false,")
+            self._script.add("    })")
+
+            aux_attribute_relation = f'fk_{aux_table_lower}_{entity_name_lower}'
+            self._script.add(f"    @JoinColumn({"{"} name: '{aux_attribute_relation}'{"}"})")
+            self._script.add(f"    {aux_attribute_relation}: {aux_table_capitalize};")
+
+        for dependence in dependencies:
+            aux_table = dependence.get("table")
+            aux_table_lower = aux_table.lower()
+            aux_table_capitalize = aux_table.capitalize()
+            aux_attribute_relation = f'fk_{entity_name_lower}_{aux_table_lower}'
+            self._script.add(f"    @OneToMany(() => {aux_table_capitalize}, ({aux_table_lower}) => {aux_table_lower}.{aux_attribute_relation})")
+            self._script.add(f"    {aux_table_lower}: {aux_table_capitalize}[];")
+        
+        self._script.add("}")
+        self._script.add("\n")
+        self.script_method.add_write_to_file(f"{entity_name_lower}/entities/{entity_name_lower}.entity.ts", self._script)
+        self._script.reset_parts()
+        self.script_method.add_line_break()
+
+    def produce_dto(self, entity_name, attributes: list[dict], relations: list[dict]) -> None:
+        self._script.add("import { IsString, IsNumber, IsNotEmpty, IsPositive, IsBoolean, IsBooleanString, IsDate, IsEmpty, IsOptional, Min} from 'class-validator';")
+        self._script.add("import { Transform, TransformFnParams } from 'class-transformer';")
+        self._script.add("import { PartialType } from '@nestjs/mapped-types';")
+        self._script.add("import { ApiProperty } from '@nestjs/swagger';")
+        
+        aux_table: str = ""
+        for relation in relations:
+            aux_table = relation.get("table")
+            self._script.add(f"import {"{"} {aux_table.capitalize()} {"}"} from 'src/{aux_table.lower()}/entities/{aux_table.lower()}.entity';")
+        
+        self._script.add("\n")
+        self._script.add("function stringToDate({ value }: TransformFnParams) {")
+        self._script.add("    return new Date(value);")
+        self._script.add("}")
+        self._script.add("\n")
+
+        self._script.add(f"export class Create{entity_name.capitalize()}Dto {"{"}")
+        for attribute in attributes:
+            is_pk = attribute.get("is-pk")
+            if is_pk:
+                continue
+
+            attribute_name = attribute.get("name").lower()
+            nn = attribute.get("nn")
+            data_type = attribute.get("data-type")
+            
+            self._script.add("    @ApiProperty()")
+            if nn:
+                self._script.add("    @IsNotEmpty()")
+            self._script.add(f"    @{get_validator_type(data_type)}()")
+            if data_type=="DATE" or data_type=="DATETIME":
+                self._script.add("    @Transform(stringToDate)")
+            self._script.add(f"    {attribute_name}:{get_javascript_type(data_type)};")
+        
+        entity_name_lower = entity_name.lower()
+        aux_attribute_relation: str = ""
+        aux_table_relation: str = ""
+        for relation in relations:
+            aux_table = relation.get("table")
+            aux_attribute_relation = f"fk_{aux_table.lower()}_{entity_name_lower}"
+            aux_table_relation = f"{aux_table.capitalize()}"
+            self._script.add("    @IsNotEmpty()")
+            self._script.add(f"    {aux_attribute_relation}: {aux_table_relation};")
+        self._script.add("}")
+        self._script.add("\n")
+        
+        self.script_method.add_write_to_file(f"{entity_name_lower}/dto/create-{entity_name_lower}.dto.ts", self._script)
+        self._script.reset_parts()
+        self.script_method.add_line_break()
+
+    def produce_service(self, entity_name, attributes: list[dict], relations: list[dict]) -> None:
+        entity_capitalize: str = entity_name.capitalize()
+        entity_lower: str = entity_name.lower()
+
+        self._script.add("import { Injectable, NotFoundException } from '@nestjs/common';")
+        self._script.add("import { Repository, DeepPartial } from 'typeorm';")
+        self._script.add(f"import {"{"} Create{entity_capitalize}Dto {"}"} from './dto/create-{entity_lower}.dto';")
+        self._script.add(f"import {"{"} Update{entity_capitalize}Dto {"}"} from './dto/update-{entity_lower}.dto';")
+        self._script.add(f"import {"{"} {entity_capitalize} {"}"} from './entities/{entity_lower}.entity';")
+        self._script.add("import { InjectRepository } from '@nestjs/typeorm';")
+        self._script.add("\n")
+        self._script.add("@Injectable()")
+        self._script.add(f"export class {entity_capitalize}Service {"{"}")
+        self._script.add("    constructor(")
+        self._script.add(f"        @InjectRepository({entity_capitalize}) private {entity_lower}Repo: Repository<{entity_capitalize}>,")
+        self._script.add("    ) {}")
+        self._script.add("\n")
+        
+        pk_attribute: str = ""
+        for attribute in attributes:
+            if attribute.get("is-pk"):
+                pk_attribute = attribute.get("name").lower()
+        self.produce_create(entity_capitalize, entity_lower)
+        self.produce_read(relations, entity_lower, pk_attribute)
+        self.produce_update(entity_lower, entity_capitalize, pk_attribute)
+        self.produce_delete(entity_lower, pk_attribute)
+        self._script.add("}")
+        self._script.add("\n")
+
+        self.script_method.add_write_to_file(f"{entity_lower}/{entity_lower}.service.ts", self._script)
+        self._script.reset_parts()
+        self.script_method.add_line_break()
+        
+    def produce_create(self, entity_capitalize: str, entity_lower: str) -> None:
+        self._script.add(f"    async create(data: Create{entity_capitalize}Dto) {"{"}")
+        self._script.add("        try {")
+        self._script.add(f"            const newObject = this.{entity_lower}Repo.create(data);")
+        self._script.add("            return {")
+        self._script.add("                statusCode: 201,")
+        self._script.add("                message: 'Create',")
+        self._script.add(f"                response: await this.{entity_lower}Repo.save(newObject),")
+        self._script.add("            };")
+        self._script.add("        } catch (error) {")
+        self._script.add("            return {")
+        self._script.add("                statusCode: 500,")
+        self._script.add("                message: 'Error Interno',")
+        self._script.add("            };")
+        self._script.add("        }")
+        self._script.add("    }")
+        self._script.add("\n")
+
+    def produce_read(self, relations: list[dict], entity_lower: str, pk_attribute: str) -> None:
+        list_fk = ''
+        for relation in relations:
+            list_fk += f"'fk_{relation.get("table").lower()}_{entity_lower}', "
+        
+        self._script.add("    async findAll() {")
+        self._script.add(f"        return await this.{entity_lower}Repo.find({"{"}relations: [{list_fk}] {"}"})")
+        self._script.add("    }")
+        self._script.add("\n")
+        self._script.add(f"    async findOne({pk_attribute}: number) {"{"}")
+        self._script.add(f"        return await this.{entity_lower}Repo.find({"{"}")
+        self._script.add(f"            where: {"{"} {pk_attribute}: {pk_attribute} {"}"},")
+        self._script.add(f"            relations: [{list_fk}],")
+        self._script.add("        }")
+        self._script.add("    }")
+        self._script.add("\n")
+
+    def produce_update(self, entity_lower: str, entity_capitalize: str, pk_attribute: str) -> None:
+        self._script.add(f"    async update({pk_attribute}: number, data: Update{entity_capitalize}Dto) {"{"}")
+        self._script.add("        try {")
+        self._script.add(f"            const upd = await this.{entity_lower}Repo.findOne({"{"}")
+        self._script.add(f"                where: {"{"} {pk_attribute}: {pk_attribute} {"}"},")
+        self._script.add("            });")
+        self._script.add("            if (upd) {")
+        self._script.add(f"                await this.{entity_lower}Repo.merge(upd, data);")
+        self._script.add("                return {")
+        self._script.add("                    statusCode: 201,")
+        self._script.add("                    message: 'Update',")
+        self._script.add(f"                    response: await this.{entity_lower}Repo.save(upd),")
+        self._script.add("                };")
+        self._script.add("            } else {" )
+        self._script.add("                return {" )
+        self._script.add("                    statusCode: 401," )
+        self._script.add("                    message: 'Not Found'," )
+        self._script.add("                };" )
+        self._script.add("            }")
+        self._script.add("        } catch (error) {")
+        self._script.add("            return { statusCode: 500, message: 'Error Interno' };")
+        self._script.add("        }")
+        self._script.add("    }")
+        self._script.add("\n")
+
+    def produce_delete(self, entity_lower: str, pk_attribute: str) -> None:
+        self._script.add(f"    async remove({pk_attribute}: number) {"{"}")
+        self._script.add("        try {"  )
+        self._script.add(f"            const dlt = await this.{entity_lower}Repo.findOne({"{"}")
+        self._script.add(f"                where: {"{"} {pk_attribute}: {pk_attribute} {"}"},")
+        self._script.add("            });")
+        self._script.add("            if (dlt) {"  )
+        self._script.add(f"                await this.{entity_lower}Repo.delete(dlt);")
+        self._script.add("                return {")
+        self._script.add("                    statusCode: 200,")
+        self._script.add("                    message: 'Delete',")
+        self._script.add("                };")
+        self._script.add("            } else {")
+        self._script.add("                return {" )
+        self._script.add("                    statusCode: 401," )
+        self._script.add("                    message: 'Not Found',")
+        self._script.add("                };")
+        self._script.add("            }")
+        self._script.add("        } catch (error) {")
+        self._script.add("            return { statusCode: 500, message: 'Error Interno' };")
+        self._script.add("        }")
+        self._script.add("    }")
+        self._script.add("\n")
+
     def produce_controller(self, entity_name, attributes):
         codeController = '@echo off\npowershell -Command ^\n'
         codeController += f"    \"Set-Content -Path '{entity_name.lower()}.controller.ts' -Value $null;\" ^\n"
@@ -177,252 +397,10 @@ class NestApiBuilder(Builder):
         codeModule += f"    \"Add-Content -Path '{entity_name.lower()}.module.ts' -Value"+" '  exports: ["+entity_name.capitalize()+"Service],';\" ^\n"
         codeModule += f"    \"Add-Content -Path '{entity_name.lower()}.module.ts' -Value"+" '})';\" ^\n"
         codeModule += f"    \"Add-Content -Path '{entity_name.lower()}.module.ts' -Value"+" 'export class "+entity_name.capitalize()+"Module { }';\"\n"
-        return codeModule
-   
-    def produce_service(self, entity_name, attributes: list[dict], relations):
-        codeService = '@echo off\npowershell -Command ^\n'
-        codeService += f"    \"Set-Content -Path '{entity_name.lower()}.service.ts' -Value $null;\" ^\n"
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" 'import { Injectable, NotFoundException } from ''@nestjs/common'';';\" ^\n"
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" 'import { Repository, DeepPartial } from ''typeorm'';';\" ^\n"
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" 'import { Create"+entity_name.capitalize()+"Dto } from ''./dto/create-"+entity_name.lower()+".dto'';';\" ^\n"
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" 'import { Update"+entity_name.capitalize()+"Dto } from ''./dto/update-"+entity_name.lower()+".dto'';';\" ^\n"
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" 'import { "+ entity_name.capitalize() +" } from ''./entities/"+entity_name.lower()+".entity'';';\" ^\n"
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" 'import { InjectRepository } from ''@nestjs/typeorm'';';\" ^\n"
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '@Injectable()';\" ^\n"
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" 'export class "+entity_name.capitalize()+"Service {';\" ^\n"
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" 'constructor(@InjectRepository("+entity_name.capitalize()+")private "+entity_name.lower()+"Repo: Repository<"+entity_name.capitalize()+">,){ }';\" ^\n"
-        #Create Service
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" ' async create(data: Create"+entity_name.capitalize()+"Dto){';\" ^\n"
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '     try{';\" ^\n"
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '         const newObject = this."+entity_name.lower()+"Repo.create(data);';\" ^\n"
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '         return {';\" ^\n"
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '             statusCode: 201,';\" ^\n"
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '             message: ''Create'',';\" ^\n"
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '             response: await this."+entity_name.lower()+"Repo.save(newObject)';\" ^\n"
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '             }';\" ^\n"
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '     }catch(error) {';\" ^\n"
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '         return {';\" ^\n"
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '             statusCode: 500,';\" ^\n"
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '             message: ''Error Interno'' ';\" ^\n"
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '             }';\" ^\n"
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '     }';\" ^\n"
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" ' }';\" ^\n"
-        #Find all Service
-        listfk = ''
-        for relation in relations:
-            listfk += f'\'\'fk_{relation.get("table").lower()}_{entity_name.lower()}\'\','
-            
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" ' async findAll(){ return await this."+entity_name.lower()+"Repo.find({relations: ["+listfk+"] });}';\" ^\n"
-        #Find
-        pk = ''
-        data_type = ''
-        
-        for attribute in attributes:
-            is_pk = attribute.get("is-pk")
-            if is_pk:
-                
-                data_type = attribute.get("data-type")
-                pk = attribute.get("name").lower()
-                data_type_switch = {
-                            'INT': f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" ' async findOne("+pk+": number){ return await this."+entity_name.lower()+"Repo.find({where:{ "+pk+": "+pk+"}, relations: ["+listfk+"] });}';\" ^\n",
-                            'VARCHAR': f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" ' async findOne("+pk+": string){ return await this."+entity_name.lower()+"Repo.find({where:{ "+pk+": "+pk+"}, relations: ["+listfk+"] });}';\" ^\n",
-                            'FLOAT': f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" ' async findOne("+pk+": number){ return await this."+entity_name.lower()+"Repo.find({where:{ "+pk+": "+pk+"}, relations: ["+listfk+"] });}';\" ^\n"
-                }
-                codeService += data_type_switch.get(data_type, "") 
-        
-        #Update 
-        data_type_switch2 = {
-                            'INT': f"{pk}: number",
-                            'VARCHAR': f"{pk}: string",
-                            'FLOAT':f"{pk}: number",
-                }
-        code = data_type_switch2.get(data_type, "")
-        
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" ' async update("+code+", data: Update"+entity_name.capitalize()+"Dto){';\" ^\n"
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '     try{';\" ^\n"  
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '         const upd = await this."+entity_name.lower()+"Repo.findOne({where:{ "+pk+": "+pk+"} });';\" ^\n"  
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '         if(upd){';\" ^\n"  
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '             await this."+entity_name.lower()+"Repo.merge(upd, data);';\" ^\n"
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '             return {';\" ^\n"
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '                 statusCode: 201,';\" ^\n"
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '                 message: ''Update'',';\" ^\n"
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '                 response: await this."+entity_name.lower()+"Repo.save(upd)';\" ^\n"
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '             }';\" ^\n"   
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '          }else{';\" ^\n" 
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '             return {';\" ^\n" 
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '                 statusCode: 200,';\" ^\n" 
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '                 message: ''Not Found'' ';\" ^\n" 
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '                 }';\" ^\n" 
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '           }';\" ^\n"
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '      }catch(error) { return { statusCode: 500, message: ''Error Interno''} }';\" ^\n"  
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" ' }';\" ^\n"
-               
-        #Delete
-        
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" ' async remove("+code+"){';\" ^\n"
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '     try{';\" ^\n"  
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '         const dlt = await this."+entity_name.lower()+"Repo.findOne({where:{ "+pk+": "+pk+"} });';\" ^\n"  
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '         if(dlt){';\" ^\n"  
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '             await this."+entity_name.lower()+"Repo.delete(dlt);';\" ^\n"
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '             return {';\" ^\n"
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '                 statusCode: 200,';\" ^\n"
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '                 message: ''Delete'',';\" ^\n"
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '             }';\" ^\n"   
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '          }else{';\" ^\n" 
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '             return {';\" ^\n" 
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '                 statusCode: 200,';\" ^\n" 
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '                 message: ''Not Found'' ';\" ^\n" 
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '                 }';\" ^\n" 
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '           }';\" ^\n"
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '      }catch(error) { return { statusCode: 500, message: ''Error Interno''} }';\" ^\n"  
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" ' }';\" ^\n"
-        codeService += f"    \"Add-Content -Path '{entity_name.lower()}.service.ts' -Value"+" '}';\" ^\n" 
-        
-        
-        return codeService  
-        
-    def produce_dto(self, entity_name, attributes: list[dict], relations):
-        codeDto = '@echo off\npowershell -Command ^\n'
-        codeDto += f"    \"Set-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value $null;\" ^\n"
-        codeDto += f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value"+" 'import { IsString, IsNumber, IsNotEmpty, IsPositive, IsBoolean, IsBooleanString, IsDate, IsEmpty, IsOptional, Min} from ''class-validator'';';\" ^\n"
-        codeDto += f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value"+" 'import { Transform, TransformFnParams } from ''class-transformer'';';\" ^\n"
-        codeDto += f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value"+" 'import { PartialType } from ''@nestjs/mapped-types'';';\" ^\n"
-        codeDto += f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value"+" 'import { ApiProperty } from ''@nestjs/swagger'';';\" ^\n"   
-        for relation in relations:
-            codeDto += f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value"+" 'import { "+relation.get("table").capitalize()+" } from ''"+f"src/{relation.get("table").lower()}/entities/{relation.get("table").lower()}.entity"+"'';';\" ^\n"
-        codeDto += f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value"+" 'function stringToDate({ value }: TransformFnParams) {return new Date(value);}';\" ^\n"
-        codeDto += f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value"+f" 'export class Create{entity_name.capitalize()}Dto "+" { ';\" ^\n"
-        for attribute in attributes:
-            attribute_name = attribute.get("name").lower()
-            is_pk = attribute.get("is-pk")
-            is_fk = attribute.get("is-fk")
-            nn = attribute.get("nn")
-            uq = attribute.get("uq")
-            ai = attribute.get("ai")
-            data_type = attribute.get("data-type")
-            
-            if is_pk == False:
-                codeDto += f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value"+" '    @ApiProperty()';\" ^\n"
-                if nn:
-                    codeDto += f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value"+" '    @IsNotEmpty()';\" ^\n"
-                
-                data_type_switch = {
-                    'INT': f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value '    @IsNumber()';\" ^\n",
-                    'VARCHAR': f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value '    @IsString()';\" ^\n",
-                    'FLOAT': f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value '    @IsNumber()';\" ^\n", 
-                    'BOOL': f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value '    @IsBoolean()';\" ^\n",
-                    'BINARY': f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value '    @IsBoolean()';\" ^\n",
-                    'DATE': f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value '    @IsDate()';\" ^\n",
-                    'DATETIME': f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value '     @IsDate()';\" ^\n"
-                }
-                codeDto += data_type_switch.get(data_type, "")
-                
-                data_type_switch = {
-                    'DATE': f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value '    @Transform(stringToDate)';\" ^\n",
-                    'DATETIME': f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value '     @Transform(stringToDate)';\" ^\n"
-                }
-                codeDto += data_type_switch.get(data_type, "")
-                
-                data_type_switch = {
-                    'INT': f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value '    {attribute_name}:number;';\" ^\n",
-                    'VARCHAR': f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value '    {attribute_name}:string;';\" ^\n",
-                    'FLOAT': f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value '    {attribute_name}:number;';\" ^\n", 
-                    'BOOL': f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value '    {attribute_name}:boolean;';\" ^\n",
-                    'BINARY': f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value '    {attribute_name}:boolean;\" ^\n",
-                    'DATE': f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value '    {attribute_name}:Date;';\" ^\n",
-                    'DATETIME': f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value '     {attribute_name}:Date;';\" ^\n"
-                }
-                codeDto += data_type_switch.get(data_type, "")
-        for relation in relations:
-            codeDto += f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value"+" '    @IsNotEmpty()';\" ^\n"
-            codeDto += f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value"+f" '    fk_{relation.get("table").lower()}_{entity_name.lower()}:{relation.get("table").capitalize()}';\" ^\n"
-        codeDto += f"    \"Add-Content -Path 'create-{entity_name.lower()}.dto.ts' -Value"+" '}';\" ^\n"
-            
-        return codeDto
-      
-    def produce_entity(self, entity_name, attributes: list[dict], relations, dependencies):
-        codeEntity = '@echo off\npowershell -Command ^\n'
-        codeEntity += f"    \"Set-Content -Path '{entity_name.lower()}.entity.ts' -Value $null;\" ^\n" 
-        codeEntity += f"    \"Add-Content -Path '{entity_name.lower()}.entity.ts' -Value"+" 'import { Column, Entity, PrimaryGeneratedColumn, ManyToOne, OneToMany, JoinColumn} from ''typeorm'';';\" ^\n"
-        for dependence in dependencies:
-            codeEntity += f"    \"Add-Content -Path '{entity_name.lower()}.entity.ts' -Value"+" 'import { "+dependence.get("table").capitalize()+" } from ''"+f"src/{dependence.get("table").lower()}/entities/{dependence.get("table").lower()}.entity"+"'';';\" ^\n"
-        for relation in relations:
-            codeEntity += f"    \"Add-Content -Path '{entity_name.lower()}.entity.ts' -Value"+" 'import { "+relation.get("table").capitalize()+" } from ''"+f"src/{relation.get("table").lower()}/entities/{relation.get("table").lower()}.entity"+"'';';\" ^\n"
-        codeEntity += f"    \"Add-Content -Path '{entity_name.lower()}.entity.ts' -Value '@Entity()';\" ^\n"
-        codeEntity += f"    \"Add-Content -Path '{entity_name.lower()}.entity.ts'"+f" -Value 'export class {entity_name.capitalize()} "+"{';\" ^\n"
-        attributesCode = ''
-       
-        entity_name_lower = entity_name.lower()
-        for attribute in attributes:
-            attribute_name = attribute.get("name").lower()
-            is_pk = attribute.get("is-pk")
-            is_fk = attribute.get("is-fk")
-            nn = attribute.get("nn")
-            uq = attribute.get("uq")
-            ai = attribute.get("ai")
-            data_type = attribute.get("data-type")
-            if is_pk:
-                attributesCode += f"    \"Add-Content -Path '{entity_name_lower}.entity.ts' -Value '    @PrimaryGeneratedColumn()';\" ^\n"
-                data_type_switch = {
-                    'INT': f"    \"Add-Content -Path '{entity_name_lower}.entity.ts' -Value '    {attribute_name}: number;';\" ^\n",
-                    'VARCHAR': f"    \"Add-Content -Path '{entity_name_lower}.entity.ts' -Value '    {attribute_name}: string;';\" ^\n",
-                    'FLOAT': f"    \"Add-Content -Path '{entity_name_lower}.entity.ts' -Value '    {attribute_name}: number;';\" ^\n", 
-                    'BOOL': f"    \"Add-Content -Path '{entity_name_lower}.entity.ts' -Value '    {attribute_name}: boolean;';\" ^\n",
-                    'BINARY': f"    \"Add-Content -Path '{entity_name_lower}.entity.ts' -Value '    {attribute_name}: boolean;';\" ^\n",
-                    'DATE': f"    \"Add-Content -Path '{entity_name_lower}.entity.ts' -Value '    {attribute_name}: Date;';\" ^\n",
-                    'DATETIME': f"    \"Add-Content -Path '{entity_name_lower}.entity.ts' -Value '    {attribute_name}: Date;';\" ^\n"
-                }
-                attributesCode += data_type_switch.get(data_type, "")
-        
-            else:
-                data_type_switch = {
-                    'INT': (
-                        f"    \"Add-Content -Path '{entity_name_lower}.entity.ts' -Value '"+"    @Column({ type: ''integer'', "+f"unique: {uq}, nullable: {nn}"+"})';\" ^\n"
-                        f"    \"Add-Content -Path '{entity_name_lower}.entity.ts' -Value '    {attribute_name}: number;';\" ^\n"
-                    ),
-                    'VARCHAR': (
-                        f"    \"Add-Content -Path '{entity_name_lower}.entity.ts' -Value '"+"    @Column({ type: ''varchar'', length: 50, "+f"unique: {uq}, nullable: {nn}"+" })';\" ^\n"
-                        f"    \"Add-Content -Path '{entity_name_lower}.entity.ts' -Value '    {attribute_name}: string;';\" ^\n"
-                    ),
-                    'FLOAT': (
-                        f"    \"Add-Content -Path '{entity_name_lower}.entity.ts' -Value '"+"    @Column({ type: ''float'',"+f"unique: {uq}, nullable: {nn}"+"})';\" ^\n"
-                        f"    \"Add-Content -Path '{entity_name_lower}.entity.ts' -Value '    {attribute_name}: number;';\" ^\n"
-                    ),
-                    'BOOL': (
-                        f"    \"Add-Content -Path '{entity_name_lower}.entity.ts' -Value '"+"    @Column({ type: ''boolean'', "+f"unique: {uq}, nullable: {nn}"+"})';\" ^\n"
-                        f"    \"Add-Content -Path '{entity_name_lower}.entity.ts' -Value '    {attribute_name}: boolean;';\" ^\n"
-                    ),
-                    'BINARY': (
-                        f"    \"Add-Content -Path '{entity_name_lower}.entity.ts' -Value '"+"    @Column({ type: ''binary''"+f"unique: {uq}, nullable: {nn}"+"})';\" ^\n"
-                        f"    \"Add-Content -Path '{entity_name_lower}.entity.ts' -Value '    {attribute_name}: boolean;';\" ^\n"
-                    ),
-                    'DATE': (
-                        f"    \"Add-Content -Path '{entity_name_lower}.entity.ts' -Value '"+"    @Column({ type: ''date'', "+f"unique: {uq}, nullable: {nn}"+"})';\" ^\n"
-                        f"    \"Add-Content -Path '{entity_name_lower}.entity.ts' -Value '    {attribute_name}: Date;';\" ^\n"
-                    ),
-                    'DATETIME': (
-                        f"    \"Add-Content -Path '{entity_name_lower}.entity.ts' -Value '"+"    @Column({ type: ''datetime'', "+f"unique: {uq}, nullable: {nn}"+"})';\" ^\n"
-                        f"    \"Add-Content -Path '{entity_name_lower}.entity.ts' -Value '    {attribute_name}: Date;';\" ^\n"
-                    )
-                }
-            
-                attributesCode += data_type_switch.get(data_type, "")
-        codeEntity += attributesCode
-        for relation in relations:
-            codeEntity += f"    \"Add-Content -Path '{entity_name_lower}.entity.ts' -Value '"+"    @ManyToOne(() => "+ f"{relation.get("table").capitalize()}, ({relation.get("table").lower()}) => {relation.get("table").lower()}.{entity_name.lower()}," + " {';\" ^\n"
-            codeEntity += f"    \"Add-Content -Path '{entity_name_lower}.entity.ts' -Value '    nullable: false,';\" ^\n"
-            codeEntity += f"    \"Add-Content -Path '{entity_name_lower}.entity.ts' -Value '    "+"})';\" ^\n"
-            codeEntity += f"    \"Add-Content -Path '{entity_name_lower}.entity.ts' -Value '    @JoinColumn("+"{"+f" name: ''fk_{relation.get("table").lower()}_{entity_name.lower()}''"+" })';\" ^\n"
-            codeEntity += f"    \"Add-Content -Path '{entity_name_lower}.entity.ts' -Value '    fk_{relation.get("table").lower()}_{entity_name.lower()}: {relation.get("table").capitalize()};';\" ^\n"
-        for dependence in dependencies:
-            codeEntity += f"    \"Add-Content -Path '{entity_name_lower}.entity.ts' -Value '    @OneToMany(()"+f" => {dependence.get("table").capitalize()}, ({dependence.get("table").lower()}) => {dependence.get("table").lower()}.fk_{entity_name.lower()}_{dependence.get("table").lower()})';\" ^\n"
-            codeEntity += f"    \"Add-Content -Path '{entity_name_lower}.entity.ts' -Value '    {dependence.get("table").lower()}: {dependence.get("table").capitalize()}[];';\" ^\n"
-        codeEntity += f"    \"Add-Content -Path '{entity_name.lower()}.entity.ts'"+" -Value '}'\"\n"
-        return codeEntity
+        return codeModule  
     
     def produce_app_file(self, entities):
         # self.script_method.add_cd("..")
-        self.script_method.add_command(f"npm i @nestjs/typeorm typeorm sqlite3")
         self.script_method.add_comment("Crear la base de datos con un script de Python incluido en el archivo .bat")
         self.script_method.add_print("Creando la base de datos SQLite...")
         # self.script_method.add_cd('src')
@@ -468,10 +446,11 @@ class NestApiBuilder(Builder):
         self.produce_main_swagger()
 
         #Execute
+        self.script_method.add_command("npm i @nestjs/typeorm typeorm sqlite3")
         self.script_method.add_command("npm i class-validator")
         self.script_method.add_command("npm i class-transformer")
         self.script_method.add_command("npm i @nestjs/mapped-types") 
-        self.script_method.add_command("npm i @nestjs/swagger")  
+        self.script_method.add_command("npm i @nestjs/swagger")
         self.script_method.add_command("npm run start:dev") 
 
     def produce_main_swagger(self) -> None:
@@ -499,7 +478,7 @@ class NestApiBuilder(Builder):
         self._script.add(f"    await app.listen({NestApiBuilder.EXECUTE_PORT});")
         self._script.add("}")
         self._script.add("\n")
-        self._script.add(" 'bootstrap();")
+        self._script.add("bootstrap();")
         self._script.add("\n")
         
         self.script_method.add_write_to_file("src/main.ts", self._script)
